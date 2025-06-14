@@ -20,6 +20,7 @@ bool iOSPlatform::startBLE(const std::string& serviceUUID) {
     }
     
     NSString* nsServiceUUID = serviceUUID.empty() ? nil : [NSString stringWithUTF8String:serviceUUID.c_str()];
+    NSLog(@"Starting BLE with service UUID: %@", nsServiceUUID);
     return [m_bleManager startBLEWithServiceUUID:nsServiceUUID];
 }
 

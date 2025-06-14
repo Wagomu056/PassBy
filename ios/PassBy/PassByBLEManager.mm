@@ -13,6 +13,7 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
 @property (nonatomic, strong) CBMutableCharacteristic *passByCharacteristic;
 @property (nonatomic, assign) BOOL isScanning;
 @property (nonatomic, assign) BOOL isAdvertising;
+@property (nonatomic, strong) NSString *pendingServiceUUID;
 
 @end
 
@@ -66,19 +67,32 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
 }
 
 - (void)startScanningWithServiceUUID:(nullable NSString*)serviceUUID {
-    if (_centralManager.state == CBManagerStatePoweredOn && !_isScanning) {
-        NSArray<CBUUID*>* services = nil;
-        if (serviceUUID && serviceUUID.length > 0) {
-            CBUUID *uuid = [CBUUID UUIDWithString:serviceUUID];
-            services = @[uuid];
-            NSLog(@"Started BLE scanning for service: %@", serviceUUID);
-        } else {
-            NSLog(@"Started BLE scanning for all devices");
-        }
-        
-        [_centralManager scanForPeripheralsWithServices:services options:nil];
+    NSLog(@"Starting BLE scanning with service UUID: %@", serviceUUID ?: @"All services");
+    NSLog(@"Central Manager state: %ld", (long)_centralManager.state);
+    
+    if (!_isScanning) {
         _isScanning = YES;
+        self.pendingServiceUUID = serviceUUID;
+        
+        if (_centralManager.state == CBManagerStatePoweredOn) {
+            [self actuallyStartScanning];
+        } else {
+            NSLog(@"Central Manager not ready (state: %ld), will start when powered on", (long)_centralManager.state);
+        }
     }
+}
+
+- (void)actuallyStartScanning {
+    NSArray<CBUUID*>* services = nil;
+    if (self.pendingServiceUUID && self.pendingServiceUUID.length > 0) {
+        CBUUID *uuid = [CBUUID UUIDWithString:self.pendingServiceUUID];
+        services = @[uuid];
+        NSLog(@"Started BLE scanning for service: %@", self.pendingServiceUUID);
+    } else {
+        NSLog(@"Started BLE scanning for all devices");
+    }
+    
+    [_centralManager scanForPeripheralsWithServices:services options:nil];
 }
 
 - (void)stopScanning {
@@ -136,11 +150,13 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
 #pragma mark - CBCentralManagerDelegate
 
 - (void)centralManagerDidUpdateState:(CBCentralManager *)central {
+    NSLog(@"Central Manager state changed to: %ld", (long)central.state);
     switch (central.state) {
         case CBManagerStatePoweredOn:
             NSLog(@"Central Manager powered on");
             if (_isScanning) {
-                [self startScanning];
+                NSLog(@"Starting pending scan...");
+                [self actuallyStartScanning];
             }
             break;
         case CBManagerStatePoweredOff:
@@ -148,6 +164,7 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
             _isScanning = NO;
             break;
         default:
+            NSLog(@"Central Manager in other state: %ld", (long)central.state);
             break;
     }
 }
