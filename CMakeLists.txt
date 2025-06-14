@@ -21,6 +21,13 @@ if(APPLE)
         ios/PassBy/PassByBLEManager.mm
         ios/PassBy/PassByiOSPlatform.mm
     )
+    
+    # iOS specific settings
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0")
+    set(CMAKE_OSX_ARCHITECTURES "arm64")
+    if(NOT CMAKE_OSX_SYSROOT)
+        set(CMAKE_OSX_SYSROOT "iphoneos")
+    endif()
 elseif(ANDROID)
     # Add Android-specific sources (placeholder)
     # list(APPEND SOURCES android/...)
@@ -53,8 +60,19 @@ if(APPLE)
         MACOSX_FRAMEWORK_IDENTIFIER com.passby.library
         VERSION 0.1.0
         SOVERSION 0.1
-        PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/include/PassBy/PassBy.h;${CMAKE_CURRENT_SOURCE_DIR}/include/PassBy/PassByTypes.h;${CMAKE_CURRENT_SOURCE_DIR}/include/PassBy/PassByBridge.h;${CMAKE_CURRENT_SOURCE_DIR}/include/PassBy/PlatformInterface.h"
         MACOSX_FRAMEWORK_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/ios/PassBy/Info.plist"
+    )
+    
+    # Copy headers to correct framework location
+    add_custom_command(TARGET PassBy POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+        "$<TARGET_FILE_DIR:PassBy>/Headers"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/include/PassBy/PassBy.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/include/PassBy/PassByTypes.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/include/PassBy/PassByBridge.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/include/PassBy/PlatformInterface.h"
+        "$<TARGET_FILE_DIR:PassBy>/Headers/"
     )
 elseif(ANDROID)
     # Android specific settings

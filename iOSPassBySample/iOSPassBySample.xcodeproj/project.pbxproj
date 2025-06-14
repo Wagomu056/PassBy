@@ -6,8 +6,28 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B05CC7402DFD8F9C00631F6D /* PassBy.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B05CC73F2DFD8F9C00631F6D /* PassBy.framework */; };
+		B05CC7412DFD8F9C00631F6D /* PassBy.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = B05CC73F2DFD8F9C00631F6D /* PassBy.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		B05CC7422DFD8F9C00631F6D /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				B05CC7412DFD8F9C00631F6D /* PassBy.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		B05CC7112DFD874B00631F6D /* iOSPassBySample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iOSPassBySample.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B05CC73F2DFD8F9C00631F6D /* PassBy.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = PassBy.framework; path = ../build/PassBy.framework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -36,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B05CC7402DFD8F9C00631F6D /* PassBy.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -46,6 +67,7 @@
 			isa = PBXGroup;
 			children = (
 				B05CC7132DFD874B00631F6D /* iOSPassBySample */,
+				B05CC72E2DFD8A7200631F6D /* Frameworks */,
 				B05CC7122DFD874B00631F6D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -58,6 +80,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		B05CC72E2DFD8A7200631F6D /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				B05CC73F2DFD8F9C00631F6D /* PassBy.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -68,6 +98,7 @@
 				B05CC70D2DFD874B00631F6D /* Sources */,
 				B05CC70E2DFD874B00631F6D /* Frameworks */,
 				B05CC70F2DFD874B00631F6D /* Resources */,
+				B05CC7422DFD8F9C00631F6D /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -145,6 +176,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = ZY99BCW7N5;
+				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/../build";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iOSPassBySample/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -172,6 +204,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = ZY99BCW7N5;
+				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/../build";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iOSPassBySample/Info.plist;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
