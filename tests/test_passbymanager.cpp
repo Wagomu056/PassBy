@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "PassBy/PassBy.h"
+#include "PassBy/PassByBridge.h"
 
 class PassByManagerTest : public ::testing::Test {
 protected:
@@ -50,16 +51,19 @@ TEST_F(PassByManagerTest, GetVersion) {
     EXPECT_EQ(version, "0.1.0");
 }
 
-TEST_F(PassByManagerTest, DeviceDiscovery) {
+TEST_F(PassByManagerTest, DeviceDiscoveryViaBridge) {
+    // Set up bridge
+    PassBy::PassByBridge::setManager(manager.get());
+    
     // Test device discovery callback
     std::vector<PassBy::DeviceInfo> discoveredDevices;
     manager->setDeviceDiscoveredCallback([&discoveredDevices](const PassBy::DeviceInfo& device) {
         discoveredDevices.push_back(device);
     });
     
-    // Simulate device discovery
-    manager->onDeviceDiscovered("test-uuid-1");
-    manager->onDeviceDiscovered("test-uuid-2");
+    // Simulate device discovery via bridge
+    PassBy::PassByBridge::onDeviceDiscovered("test-uuid-1");
+    PassBy::PassByBridge::onDeviceDiscovered("test-uuid-2");
     
     // Check callback was called
     EXPECT_EQ(discoveredDevices.size(), 2);
@@ -68,14 +72,17 @@ TEST_F(PassByManagerTest, DeviceDiscovery) {
 }
 
 TEST_F(PassByManagerTest, GetDiscoveredDevices) {
+    // Set up bridge
+    PassBy::PassByBridge::setManager(manager.get());
+    
     // Initially no devices
     auto devices = manager->getDiscoveredDevices();
     EXPECT_TRUE(devices.empty());
     
-    // Add some devices
-    manager->onDeviceDiscovered("device-1");
-    manager->onDeviceDiscovered("device-2");
-    manager->onDeviceDiscovered("device-1"); // Duplicate should be ignored
+    // Add some devices via bridge
+    PassBy::PassByBridge::onDeviceDiscovered("device-1");
+    PassBy::PassByBridge::onDeviceDiscovered("device-2");
+    PassBy::PassByBridge::onDeviceDiscovered("device-1"); // Duplicate should be ignored
     
     devices = manager->getDiscoveredDevices();
     EXPECT_EQ(devices.size(), 2);
@@ -91,9 +98,12 @@ TEST_F(PassByManagerTest, GetDiscoveredDevices) {
 }
 
 TEST_F(PassByManagerTest, ClearDiscoveredDevices) {
+    // Set up bridge
+    PassBy::PassByBridge::setManager(manager.get());
+    
     // Add devices
-    manager->onDeviceDiscovered("device-1");
-    manager->onDeviceDiscovered("device-2");
+    PassBy::PassByBridge::onDeviceDiscovered("device-1");
+    PassBy::PassByBridge::onDeviceDiscovered("device-2");
     
     auto devices = manager->getDiscoveredDevices();
     EXPECT_EQ(devices.size(), 2);
