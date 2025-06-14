@@ -59,10 +59,10 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
 
 - (void)startScanning {
     if (_centralManager.state == CBManagerStatePoweredOn && !_isScanning) {
-        CBUUID *serviceUUID = [CBUUID UUIDWithString:kPassByServiceUUID];
-        [_centralManager scanForPeripheralsWithServices:@[serviceUUID] options:nil];
+        // Scan for all devices (nil = all services)
+        [_centralManager scanForPeripheralsWithServices:nil options:nil];
         _isScanning = YES;
-        NSLog(@"Started BLE scanning");
+        NSLog(@"Started BLE scanning for all devices");
     }
 }
 
@@ -144,8 +144,9 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
     
     // Generate a simple UUID for the discovered device
     NSString *deviceUUID = peripheral.identifier.UUIDString;
+    NSString *deviceName = peripheral.name ?: @"Unknown";
     
-    NSLog(@"Discovered device: %@", deviceUUID);
+    NSLog(@"Discovered device: %@ (Name: %@, RSSI: %@)", deviceUUID, deviceName, RSSI);
     
     // Report to C++ layer via bridge
     PassBy::PassByBridge::onDeviceDiscovered([deviceUUID UTF8String]);

@@ -2,7 +2,12 @@
 
 #include "PassBy/PlatformInterface.h"
 
+// Forward declare Objective-C class to avoid header dependencies
+#ifdef __OBJC__
 @class PassByBLEManager;
+#else
+typedef struct objc_object PassByBLEManager;
+#endif
 
 namespace PassBy {
 

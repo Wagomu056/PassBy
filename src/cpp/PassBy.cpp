@@ -1,8 +1,21 @@
 #include "PassBy/PassBy.h"
+#if TARGET_OS_IPHONE
+#include "../ios/PassBy/PassByiOSPlatform.h"
+#endif
 
 namespace PassBy {
 
-PassByManager::PassByManager() : m_isScanning(false), m_deviceCallback(nullptr), m_platform(nullptr) {
+PassByManager::PassByManager() : m_isScanning(false), m_deviceCallback(nullptr) {
+#if TARGET_OS_IPHONE
+    m_platform = std::make_unique<iOSPlatform>();
+#elif defined(ANDROID)
+    // TODO: Add Android platform when implemented
+    // m_platform = std::make_unique<AndroidPlatform>();
+    m_platform = nullptr;
+#else
+    // For testing/development on macOS
+    m_platform = nullptr;
+#endif
 }
 
 PassByManager::PassByManager(std::unique_ptr<PlatformInterface> platform) 
