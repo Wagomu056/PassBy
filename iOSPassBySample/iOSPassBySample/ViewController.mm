@@ -13,6 +13,7 @@
 
 @interface ViewController ()
 @property (nonatomic, strong) UILabel *statusLabel;
+@property (nonatomic, strong) UITextField *serviceUUIDTextField;
 @property (nonatomic, strong) UIButton *startButton;
 @property (nonatomic, strong) UIButton *stopButton;
 @property (nonatomic, strong) UITextView *devicesTextView;
@@ -38,6 +39,18 @@
     self.statusLabel.textAlignment = NSTextAlignmentCenter;
     self.statusLabel.translatesAutoresizingMaskIntoConstraints = NO;
     [self.view addSubview:self.statusLabel];
+    
+    // Service UUID text field
+    self.serviceUUIDTextField = [[UITextField alloc] init];
+    self.serviceUUIDTextField.placeholder = @"Service UUID (empty = all devices)";
+    self.serviceUUIDTextField.text = @"12345678-1234-1234-1234-123456789ABC";
+    self.serviceUUIDTextField.borderStyle = UITextBorderStyleRoundedRect;
+    self.serviceUUIDTextField.delegate = self;
+    self.serviceUUIDTextField.returnKeyType = UIReturnKeyDone;
+    self.serviceUUIDTextField.autocapitalizationType = UITextAutocapitalizationTypeNone;
+    self.serviceUUIDTextField.autocorrectionType = UITextAutocorrectionTypeNo;
+    self.serviceUUIDTextField.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.serviceUUIDTextField];
     
     // Start button
     self.startButton = [UIButton buttonWithType:UIButtonTypeSystem];
@@ -68,7 +81,11 @@
         [self.statusLabel.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
         [self.statusLabel.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
         
-        [self.startButton.topAnchor constraintEqualToAnchor:self.statusLabel.bottomAnchor constant:20],
+        [self.serviceUUIDTextField.topAnchor constraintEqualToAnchor:self.statusLabel.bottomAnchor constant:20],
+        [self.serviceUUIDTextField.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
+        [self.serviceUUIDTextField.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
+        
+        [self.startButton.topAnchor constraintEqualToAnchor:self.serviceUUIDTextField.bottomAnchor constant:20],
         [self.startButton.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
         [self.startButton.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
         
@@ -84,8 +101,17 @@
 }
 
 - (void)setupPassBy {
-    // Create PassBy manager
-    _passbyManager = std::make_unique<PassBy::PassByManager>();
+    // PassBy manager will be created when scanning starts
+    // to use the service UUID from the text field
+}
+
+- (void)createPassByManagerWithServiceUUID:(NSString*)serviceUUID {
+    // Create PassBy manager with service UUID
+    if (serviceUUID && serviceUUID.length > 0) {
+        _passbyManager = std::make_unique<PassBy::PassByManager>(std::string([serviceUUID UTF8String]));
+    } else {
+        _passbyManager = std::make_unique<PassBy::PassByManager>();
+    }
     
     // Set up bridge to receive callbacks
     PassBy::PassByBridge::setManager(_passbyManager.get());
@@ -99,16 +125,38 @@
 }
 
 - (void)startButtonTapped {
+    // Stop any existing manager first
+    if (_passbyManager) {
+        _passbyManager->stopScanning();
+        _passbyManager.reset();
+    }
+    
+    // Clear previous results
+    self.devicesTextView.text = @"Discovered devices will appear here...";
+    
+    // Create manager with current service UUID
+    NSString *serviceUUID = self.serviceUUIDTextField.text;
+    if (serviceUUID.length == 0) {
+        serviceUUID = nil; // Empty string = scan all devices
+    }
+    
+    [self createPassByManagerWithServiceUUID:serviceUUID];
+    
     if (_passbyManager->startScanning()) {
-        self.statusLabel.text = @"PassBy Status: Scanning";
-        NSLog(@"Started BLE scanning");
+        if (serviceUUID) {
+            self.statusLabel.text = [NSString stringWithFormat:@"PassBy Status: Scanning for %@", serviceUUID];
+            NSLog(@"Started BLE scanning for service: %@", serviceUUID);
+        } else {
+            self.statusLabel.text = @"PassBy Status: Scanning all devices";
+            NSLog(@"[sample] Started BLE scanning for all devices");
+        }
     } else {
         NSLog(@"Failed to start BLE scanning");
     }
 }
 
 - (void)stopButtonTapped {
-    if (_passbyManager->stopScanning()) {
+    if (_passbyManager && _passbyManager->stopScanning()) {
         self.statusLabel.text = @"PassBy Status: Stopped";
         NSLog(@"Stopped BLE scanning");
     } else {
@@ -129,6 +177,13 @@
     }
     
     self.devicesTextView.text = devicesText;
+}
+
+#pragma mark - UITextFieldDelegate
+
+- (BOOL)textFieldShouldReturn:(UITextField *)textField {
+    [textField resignFirstResponder];
+    return YES;
 }
 
 @end
