@@ -19,25 +19,35 @@ PassBy/
 
 ## Build Commands
 
+### Development Build (macOS/Testing)
 ```bash
-# Build the library
-mkdir build && cd build
-cmake ..
+# Build and run tests (recommended)
+./build_and_test.sh
+
+# Run tests only (if already built)
+./run_tests.sh
+
+# Manual build and test
+mkdir build_test && cd build_test
+cmake -DBUILD_TESTING=ON ..
 make
-
-# Run tests
 make test
-# or
-ctest
+```
 
-# Run tests with verbose output
-ctest --verbose
+### iOS Framework Build
+```bash
+# Quick development build (device only)
+./build_ios_dev.sh
 
-# For iOS (requires Xcode)
-cmake .. -G Xcode -DCMAKE_TOOLCHAIN_FILE=ios.toolchain.cmake
+# Universal framework (device + simulator)
+./build_ios_framework.sh
+```
 
-# For Android (requires NDK)
-cmake .. -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake
+### Manual iOS Build
+```bash
+mkdir build && cd build
+cmake -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_ARCHITECTURES=arm64 -DBUILD_TESTING=OFF ..
+make
 ```
 
 ## Architecture
