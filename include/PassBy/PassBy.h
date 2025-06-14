@@ -12,7 +12,9 @@ namespace PassBy {
 class PassByManager {
 public:
     PassByManager();
+    explicit PassByManager(const std::string& serviceUUID);
     explicit PassByManager(std::unique_ptr<PlatformInterface> platform);
+    PassByManager(std::unique_ptr<PlatformInterface> platform, const std::string& serviceUUID);
     ~PassByManager();
     
     // Start BLE scanning
@@ -44,6 +46,7 @@ private:
     std::set<std::string> m_discoveredDevices;
     DeviceDiscoveredCallback m_deviceCallback;
     std::unique_ptr<PlatformInterface> m_platform;
+    std::string m_serviceUUID;
 };
 
 } // namespace PassBy

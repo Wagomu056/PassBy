@@ -34,11 +34,15 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
 }
 
 - (BOOL)startBLE {
+    return [self startBLEWithServiceUUID:nil];
+}
+
+- (BOOL)startBLEWithServiceUUID:(nullable NSString*)serviceUUID {
     if (self.isActive) {
         return NO;
     }
     
-    [self startScanning];
+    [self startScanningWithServiceUUID:serviceUUID];
     [self startAdvertising];
     
     return YES;
@@ -58,11 +62,22 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
 #pragma mark - Private Methods
 
 - (void)startScanning {
+    [self startScanningWithServiceUUID:nil];
+}
+
+- (void)startScanningWithServiceUUID:(nullable NSString*)serviceUUID {
     if (_centralManager.state == CBManagerStatePoweredOn && !_isScanning) {
-        // Scan for all devices (nil = all services)
-        [_centralManager scanForPeripheralsWithServices:nil options:nil];
+        NSArray<CBUUID*>* services = nil;
+        if (serviceUUID && serviceUUID.length > 0) {
+            CBUUID *uuid = [CBUUID UUIDWithString:serviceUUID];
+            services = @[uuid];
+            NSLog(@"Started BLE scanning for service: %@", serviceUUID);
+        } else {
+            NSLog(@"Started BLE scanning for all devices");
+        }
+        
+        [_centralManager scanForPeripheralsWithServices:services options:nil];
         _isScanning = YES;
-        NSLog(@"Started BLE scanning for all devices");
     }
 }
 

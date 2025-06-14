@@ -5,7 +5,21 @@
 
 namespace PassBy {
 
-PassByManager::PassByManager() : m_isScanning(false), m_deviceCallback(nullptr) {
+PassByManager::PassByManager() : m_isScanning(false), m_deviceCallback(nullptr), m_serviceUUID("") {
+#if TARGET_OS_IPHONE
+    m_platform = std::make_unique<iOSPlatform>();
+#elif defined(ANDROID)
+    // TODO: Add Android platform when implemented
+    // m_platform = std::make_unique<AndroidPlatform>();
+    m_platform = nullptr;
+#else
+    // For testing/development on macOS
+    m_platform = nullptr;
+#endif
+}
+
+PassByManager::PassByManager(const std::string& serviceUUID) 
+    : m_isScanning(false), m_deviceCallback(nullptr), m_serviceUUID(serviceUUID) {
 #if TARGET_OS_IPHONE
     m_platform = std::make_unique<iOSPlatform>();
 #elif defined(ANDROID)
@@ -19,7 +33,11 @@ PassByManager::PassByManager() : m_isScanning(false), m_deviceCallback(nullptr) 
 }
 
 PassByManager::PassByManager(std::unique_ptr<PlatformInterface> platform) 
-    : m_isScanning(false), m_deviceCallback(nullptr), m_platform(std::move(platform)) {
+    : m_isScanning(false), m_deviceCallback(nullptr), m_platform(std::move(platform)), m_serviceUUID("") {
+}
+
+PassByManager::PassByManager(std::unique_ptr<PlatformInterface> platform, const std::string& serviceUUID) 
+    : m_isScanning(false), m_deviceCallback(nullptr), m_platform(std::move(platform)), m_serviceUUID(serviceUUID) {
 }
 
 PassByManager::~PassByManager() {
@@ -35,7 +53,7 @@ bool PassByManager::startScanning() {
     
     // Use platform interface if available
     if (m_platform) {
-        if (m_platform->startBLE()) {
+        if (m_platform->startBLE(m_serviceUUID)) {
             m_isScanning = true;
             return true;
         }

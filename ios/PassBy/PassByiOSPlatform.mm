@@ -14,11 +14,13 @@ iOSPlatform::~iOSPlatform() {
     }
 }
 
-bool iOSPlatform::startBLE() {
+bool iOSPlatform::startBLE(const std::string& serviceUUID) {
     if (!m_bleManager) {
         return false;
     }
-    return [m_bleManager startBLE];
+    
+    NSString* nsServiceUUID = serviceUUID.empty() ? nil : [NSString stringWithUTF8String:serviceUUID.c_str()];
+    return [m_bleManager startBLEWithServiceUUID:nsServiceUUID];
 }
 
 bool iOSPlatform::stopBLE() {
