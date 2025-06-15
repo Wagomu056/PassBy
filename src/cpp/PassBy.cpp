@@ -1,4 +1,5 @@
 #include "PassBy/PassBy.h"
+#include "PassBy/PassByBridge.h"
 #if TARGET_OS_IPHONE
 #include "../ios/PassBy/PassByiOSPlatform.h"
 #endif
@@ -6,38 +7,41 @@
 namespace PassBy {
 
 PassByManager::PassByManager() : m_isScanning(false), m_deviceCallback(nullptr), m_serviceUUID("") {
-#if TARGET_OS_IPHONE
-    m_platform = std::make_unique<iOSPlatform>();
-#elif defined(ANDROID)
-    // TODO: Add Android platform when implemented
-    // m_platform = std::make_unique<AndroidPlatform>();
-    m_platform = nullptr;
-#else
-    // For testing/development on macOS
-    m_platform = nullptr;
-#endif
+    initialize();
 }
 
 PassByManager::PassByManager(const std::string& serviceUUID) 
     : m_isScanning(false), m_deviceCallback(nullptr), m_serviceUUID(serviceUUID) {
-#if TARGET_OS_IPHONE
-    m_platform = std::make_unique<iOSPlatform>();
-#elif defined(ANDROID)
-    // TODO: Add Android platform when implemented
-    // m_platform = std::make_unique<AndroidPlatform>();
-    m_platform = nullptr;
-#else
-    // For testing/development on macOS
-    m_platform = nullptr;
-#endif
+    initialize();
 }
 
 PassByManager::PassByManager(std::unique_ptr<PlatformInterface> platform) 
     : m_isScanning(false), m_deviceCallback(nullptr), m_platform(std::move(platform)), m_serviceUUID("") {
+    initialize();
 }
 
 PassByManager::PassByManager(std::unique_ptr<PlatformInterface> platform, const std::string& serviceUUID) 
     : m_isScanning(false), m_deviceCallback(nullptr), m_platform(std::move(platform)), m_serviceUUID(serviceUUID) {
+    initialize();
+}
+
+void PassByManager::initialize() {
+    // Create platform if not provided
+    if (!m_platform) {
+#if TARGET_OS_IPHONE
+        m_platform = std::make_unique<iOSPlatform>();
+#elif defined(ANDROID)
+        // TODO: Add Android platform when implemented
+        // m_platform = std::make_unique<AndroidPlatform>();
+        m_platform = nullptr;
+#else
+        // For testing/development on macOS
+        m_platform = nullptr;
+#endif
+    }
+    
+    // Automatically register this manager with the bridge
+    PassByBridge::setManager(this);
 }
 
 PassByManager::~PassByManager() {

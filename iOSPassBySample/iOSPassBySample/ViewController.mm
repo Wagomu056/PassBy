@@ -7,7 +7,6 @@
 
 #import "ViewController.h"
 #include <PassBy/PassBy.h>
-#include <PassBy/PassByBridge.h>
 #include <PassBy/PassByTypes.h>
 #include <memory>
 
@@ -113,8 +112,7 @@
         _passbyManager = std::make_unique<PassBy::PassByManager>();
     }
     
-    // Set up bridge to receive callbacks
-    PassBy::PassByBridge::setManager(_passbyManager.get());
+    // Bridge is automatically set up in PassByManager constructor
     
     // Set up device discovery callback
     _passbyManager->setDeviceDiscoveredCallback([self](const PassBy::DeviceInfo& device) {

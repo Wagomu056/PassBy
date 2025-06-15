@@ -42,6 +42,8 @@ public:
     void onDeviceDiscovered(const std::string& uuid);
 
 private:
+    void initialize();
+    
     bool m_isScanning;
     std::set<std::string> m_discoveredDevices;
     DeviceDiscoveredCallback m_deviceCallback;
