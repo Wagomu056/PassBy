@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "PassBy/PassBy.h"
-#include "PassBy/PassByBridge.h"
+#include "../src/internal/PassByBridge.h"
 
 class PassByManagerTest : public ::testing::Test {
 protected:

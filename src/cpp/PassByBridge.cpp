@@ -1,4 +1,4 @@
-#include "PassBy/PassByBridge.h"
+#include "../internal/PassByBridge.h"
 #include "PassBy/PassBy.h"
 
 namespace PassBy {

@@ -1,5 +1,6 @@
 #include "PassBy/PassBy.h"
-#include "PassBy/PassByBridge.h"
+#include "../internal/PassByBridge.h"
+#include "../internal/PlatformInterface.h"
 #if TARGET_OS_IPHONE
 #include "../ios/PassBy/PassByiOSPlatform.h"
 #endif

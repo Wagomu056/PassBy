@@ -1,6 +1,6 @@
 #pragma once
 
-#include "PassBy/PlatformInterface.h"
+#include "../../src/internal/PlatformInterface.h"
 
 // Forward declare Objective-C class to avoid header dependencies
 #ifdef __OBJC__

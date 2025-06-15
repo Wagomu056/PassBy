@@ -5,9 +5,11 @@
 #include <set>
 #include <memory>
 #include "PassByTypes.h"
-#include "PlatformInterface.h"
 
 namespace PassBy {
+
+// Forward declarations
+class PlatformInterface;
 
 class PassByManager {
 public:

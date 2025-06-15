@@ -63,15 +63,13 @@ if(APPLE)
         MACOSX_FRAMEWORK_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/ios/PassBy/Info.plist"
     )
     
-    # Copy headers to correct framework location
+    # Copy public headers to correct framework location
     add_custom_command(TARGET PassBy POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E make_directory
         "$<TARGET_FILE_DIR:PassBy>/Headers"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/include/PassBy/PassBy.h"
         "${CMAKE_CURRENT_SOURCE_DIR}/include/PassBy/PassByTypes.h"
-        "${CMAKE_CURRENT_SOURCE_DIR}/include/PassBy/PassByBridge.h"
-        "${CMAKE_CURRENT_SOURCE_DIR}/include/PassBy/PlatformInterface.h"
         "$<TARGET_FILE_DIR:PassBy>/Headers/"
     )
 elseif(ANDROID)

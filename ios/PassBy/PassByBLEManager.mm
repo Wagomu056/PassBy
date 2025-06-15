@@ -1,5 +1,5 @@
 #import "PassByBLEManager.h"
-#include "PassBy/PassByBridge.h"
+#include "../../src/internal/PassByBridge.h"
 
 // UUID for PassBy service and characteristic
 static NSString * const kPassByServiceUUID = @"12345678-1234-1234-1234-123456789ABC";
