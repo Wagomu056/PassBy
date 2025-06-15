@@ -4,6 +4,7 @@
 #include <vector>
 #include <set>
 #include <memory>
+#include <mutex>
 #include "PassByTypes.h"
 
 namespace PassBy {
@@ -13,10 +14,11 @@ class PlatformInterface;
 
 class PassByManager {
 public:
-    PassByManager();
-    explicit PassByManager(const std::string& serviceUUID);
-    explicit PassByManager(std::unique_ptr<PlatformInterface> platform);
-    PassByManager(std::unique_ptr<PlatformInterface> platform, const std::string& serviceUUID);
+    // Singleton access
+    static PassByManager& getInstance();
+    static PassByManager& getInstance(const std::string& serviceUUID);
+    
+    // No public constructors
     ~PassByManager();
     
     // Start BLE scanning
@@ -43,9 +45,29 @@ public:
     // Called by platform-specific code when device is discovered
     void onDeviceDiscovered(const std::string& uuid);
 
+#ifdef PASSBY_TESTING_ENABLED
+    // For testing only - reset singleton state
+    static void _resetForTesting();
+#endif
+
 private:
+    // Private constructors for singleton
+    PassByManager();
+    explicit PassByManager(const std::string& serviceUUID);
+    
+    // Copy and move operations deleted
+    PassByManager(const PassByManager&) = delete;
+    PassByManager& operator=(const PassByManager&) = delete;
+    PassByManager(PassByManager&&) = delete;
+    PassByManager& operator=(PassByManager&&) = delete;
+    
     void initialize();
     
+    // Singleton instance
+    static std::unique_ptr<PassByManager> s_instance;
+    static std::mutex s_mutex;
+    
+    // Instance data
     bool m_isScanning;
     std::set<std::string> m_discoveredDevices;
     DeviceDiscoveredCallback m_deviceCallback;

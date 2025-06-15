@@ -7,22 +7,39 @@
 
 namespace PassBy {
 
+// Static member definitions
+std::unique_ptr<PassByManager> PassByManager::s_instance = nullptr;
+std::mutex PassByManager::s_mutex;
+
+PassByManager& PassByManager::getInstance() {
+    std::lock_guard<std::mutex> lock(s_mutex);
+    if (!s_instance) {
+        // Use a temporary unique_ptr to ensure proper initialization
+        auto temp = std::unique_ptr<PassByManager>(new PassByManager());
+        s_instance = std::move(temp);
+    }
+    return *s_instance;
+}
+
+PassByManager& PassByManager::getInstance(const std::string& serviceUUID) {
+    std::lock_guard<std::mutex> lock(s_mutex);
+    if (!s_instance) {
+        // Use a temporary unique_ptr to ensure proper initialization
+        auto temp = std::unique_ptr<PassByManager>(new PassByManager(serviceUUID));
+        s_instance = std::move(temp);
+    } else {
+        // Update service UUID if instance already exists
+        s_instance->m_serviceUUID = serviceUUID;
+    }
+    return *s_instance;
+}
+
 PassByManager::PassByManager() : m_isScanning(false), m_deviceCallback(nullptr), m_serviceUUID("") {
     initialize();
 }
 
 PassByManager::PassByManager(const std::string& serviceUUID) 
     : m_isScanning(false), m_deviceCallback(nullptr), m_serviceUUID(serviceUUID) {
-    initialize();
-}
-
-PassByManager::PassByManager(std::unique_ptr<PlatformInterface> platform) 
-    : m_isScanning(false), m_deviceCallback(nullptr), m_platform(std::move(platform)), m_serviceUUID("") {
-    initialize();
-}
-
-PassByManager::PassByManager(std::unique_ptr<PlatformInterface> platform, const std::string& serviceUUID) 
-    : m_isScanning(false), m_deviceCallback(nullptr), m_platform(std::move(platform)), m_serviceUUID(serviceUUID) {
     initialize();
 }
 
@@ -119,5 +136,12 @@ void PassByManager::onDeviceDiscovered(const std::string& uuid) {
 std::string PassByManager::getVersion() {
     return "0.1.0";
 }
+
+#ifdef PASSBY_TESTING_ENABLED
+void PassByManager::_resetForTesting() {
+    std::lock_guard<std::mutex> lock(s_mutex);
+    s_instance.reset();
+}
+#endif
 
 } // namespace PassBy

@@ -87,6 +87,9 @@ if(BUILD_TESTING)
     # Find GTest
     find_package(GTest REQUIRED)
     
+    # Enable testing macros for the library when building tests
+    target_compile_definitions(PassBy PRIVATE PASSBY_TESTING_ENABLED)
+    
     # Test source files
     set(TEST_SOURCES
         tests/test_passbymanager.cpp
@@ -94,6 +97,9 @@ if(BUILD_TESTING)
     
     # Create test executable
     add_executable(PassByTests ${TEST_SOURCES})
+    
+    # Enable testing macros for tests
+    target_compile_definitions(PassByTests PRIVATE PASSBY_TESTING_ENABLED)
     
     # Link libraries
     target_link_libraries(PassByTests 
@@ -104,4 +110,9 @@ if(BUILD_TESTING)
     
     # Add test to CTest
     add_test(NAME PassByUnitTests COMMAND PassByTests)
+    
+    # Run tests serially to avoid singleton conflicts
+    set_tests_properties(PassByUnitTests PROPERTIES
+        RUN_SERIAL TRUE
+    )
 endif()

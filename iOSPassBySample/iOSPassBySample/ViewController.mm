@@ -19,7 +19,7 @@
 @end
 
 @implementation ViewController {
-    std::unique_ptr<PassBy::PassByManager> _passbyManager;
+    PassBy::PassByManager* _passbyManager;
 }
 
 - (void)viewDidLoad {
@@ -105,11 +105,11 @@
 }
 
 - (void)createPassByManagerWithServiceUUID:(NSString*)serviceUUID {
-    // Create PassBy manager with service UUID
+    // Get singleton PassBy manager with service UUID
     if (serviceUUID && serviceUUID.length > 0) {
-        _passbyManager = std::make_unique<PassBy::PassByManager>(std::string([serviceUUID UTF8String]));
+        _passbyManager = &PassBy::PassByManager::getInstance(std::string([serviceUUID UTF8String]));
     } else {
-        _passbyManager = std::make_unique<PassBy::PassByManager>();
+        _passbyManager = &PassBy::PassByManager::getInstance();
     }
     
     // Bridge is automatically set up in PassByManager constructor
@@ -123,16 +123,10 @@
 }
 
 - (void)startButtonTapped {
-    // Stop any existing manager first
-    if (_passbyManager) {
-        _passbyManager->stopScanning();
-        _passbyManager.reset();
-    }
-    
     // Clear previous results
     self.devicesTextView.text = @"Discovered devices will appear here...";
     
-    // Create manager with current service UUID
+    // Get manager with current service UUID
     NSString *serviceUUID = self.serviceUUIDTextField.text;
     if (serviceUUID.length == 0) {
         serviceUUID = nil; // Empty string = scan all devices
