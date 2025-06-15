@@ -52,8 +52,9 @@ TEST_F(PassByManagerTest, GetVersion) {
 }
 
 TEST_F(PassByManagerTest, DeviceDiscoveryViaBridge) {
-    // Set up bridge
-    PassBy::PassByBridge::setManager(manager.get());
+    // Bridge should be automatically set up in constructor
+    // Verify the manager is registered
+    EXPECT_EQ(PassBy::PassByBridge::getManager(), manager.get());
     
     // Test device discovery callback
     std::vector<PassBy::DeviceInfo> discoveredDevices;
@@ -72,8 +73,8 @@ TEST_F(PassByManagerTest, DeviceDiscoveryViaBridge) {
 }
 
 TEST_F(PassByManagerTest, GetDiscoveredDevices) {
-    // Set up bridge
-    PassBy::PassByBridge::setManager(manager.get());
+    // Bridge should be automatically set up - verify it
+    EXPECT_EQ(PassBy::PassByBridge::getManager(), manager.get());
     
     // Initially no devices
     auto devices = manager->getDiscoveredDevices();
@@ -98,8 +99,8 @@ TEST_F(PassByManagerTest, GetDiscoveredDevices) {
 }
 
 TEST_F(PassByManagerTest, ClearDiscoveredDevices) {
-    // Set up bridge
-    PassBy::PassByBridge::setManager(manager.get());
+    // Bridge should be automatically set up - verify it
+    EXPECT_EQ(PassBy::PassByBridge::getManager(), manager.get());
     
     // Add devices
     PassBy::PassByBridge::onDeviceDiscovered("device-1");
@@ -112,4 +113,19 @@ TEST_F(PassByManagerTest, ClearDiscoveredDevices) {
     manager->clearDiscoveredDevices();
     devices = manager->getDiscoveredDevices();
     EXPECT_TRUE(devices.empty());
+}
+
+TEST_F(PassByManagerTest, AutomaticBridgeRegistration) {
+    // Test that bridge is automatically registered without manual setManager call
+    EXPECT_EQ(PassBy::PassByBridge::getManager(), manager.get());
+    
+    // Test with serviceUUID constructor
+    auto managerWithUUID = std::make_unique<PassBy::PassByManager>("test-service-uuid");
+    EXPECT_EQ(PassBy::PassByBridge::getManager(), managerWithUUID.get());
+    
+    // Test that newer manager overrides the bridge registration
+    auto anotherManager = std::make_unique<PassBy::PassByManager>();
+    EXPECT_EQ(PassBy::PassByBridge::getManager(), anotherManager.get());
+    EXPECT_NE(PassBy::PassByBridge::getManager(), manager.get());
+    EXPECT_NE(PassBy::PassByBridge::getManager(), managerWithUUID.get());
 }
