@@ -21,29 +21,8 @@ PassByManager& PassByManager::getInstance() {
     return *s_instance;
 }
 
-PassByManager& PassByManager::getInstance(const std::string& serviceUUID) {
-    std::lock_guard<std::mutex> lock(s_mutex);
-    if (!s_instance) {
-        // Use a temporary unique_ptr to ensure proper initialization
-        auto temp = std::unique_ptr<PassByManager>(new PassByManager(serviceUUID));
-        s_instance = std::move(temp);
-    } else {
-        // Update service UUID if instance already exists
-        s_instance->m_serviceUUID = serviceUUID;
-    }
-    return *s_instance;
-}
 
-PassByManager::PassByManager() : m_isScanning(false), m_deviceCallback(nullptr), m_serviceUUID("") {
-    initialize();
-}
-
-PassByManager::PassByManager(const std::string& serviceUUID) 
-    : m_isScanning(false), m_deviceCallback(nullptr), m_serviceUUID(serviceUUID) {
-    initialize();
-}
-
-void PassByManager::initialize() {
+PassByManager::PassByManager() : m_isScanning(false), m_deviceCallback(nullptr), m_currentServiceUUID("") {
     // Create platform if not provided
     if (!m_platform) {
 #if TARGET_OS_IPHONE
@@ -68,14 +47,17 @@ PassByManager::~PassByManager() {
     }
 }
 
-bool PassByManager::startScanning() {
+bool PassByManager::startScanning(const std::string& serviceUUID) {
     if (m_isScanning) {
         return false;
     }
     
+    // Store the service UUID for this scanning session
+    m_currentServiceUUID = serviceUUID;
+    
     // Use platform interface if available
     if (m_platform) {
-        if (m_platform->startBLE(m_serviceUUID)) {
+        if (m_platform->startBLE(serviceUUID)) {
             m_isScanning = true;
             return true;
         }
@@ -96,6 +78,7 @@ bool PassByManager::stopScanning() {
     if (m_platform) {
         if (m_platform->stopBLE()) {
             m_isScanning = false;
+            m_currentServiceUUID.clear(); // Clear service UUID when stopping
             return true;
         }
         return false;
@@ -103,6 +86,7 @@ bool PassByManager::stopScanning() {
     
     // Default behavior for testing
     m_isScanning = false;
+    m_currentServiceUUID.clear(); // Clear service UUID when stopping
     return true;
 }
 
@@ -120,6 +104,10 @@ std::vector<std::string> PassByManager::getDiscoveredDevices() const {
 
 void PassByManager::clearDiscoveredDevices() {
     m_discoveredDevices.clear();
+}
+
+const std::string& PassByManager::getCurrentServiceUUID() const {
+    return m_currentServiceUUID;
 }
 
 void PassByManager::onDeviceDiscovered(const std::string& uuid) {

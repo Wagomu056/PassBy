@@ -149,20 +149,61 @@ TEST_F(PassByManagerTest, AutomaticBridgeRegistration) {
     
     // Test that bridge is automatically registered without manual setManager call
     EXPECT_EQ(PassBy::PassByBridge::getManager(), &manager);
-    
-    // Test with serviceUUID - should get same instance
-    auto& managerWithUUID = PassBy::PassByManager::getInstance("test-service-uuid");
-    EXPECT_EQ(&managerWithUUID, &manager);
-    EXPECT_EQ(PassBy::PassByBridge::getManager(), &manager);
 }
 
 TEST_F(PassByManagerTest, SingletonBehavior) {
     // Test that getInstance always returns the same instance
     auto& manager1 = PassBy::PassByManager::getInstance();
     auto& manager2 = PassBy::PassByManager::getInstance();
-    auto& manager3 = PassBy::PassByManager::getInstance("different-uuid");
     
     EXPECT_EQ(&manager1, &manager2);
-    EXPECT_EQ(&manager2, &manager3);
-    EXPECT_EQ(&manager1, &manager3);
+}
+
+TEST_F(PassByManagerTest, ServiceUUIDHandling) {
+    auto& manager = PassBy::PassByManager::getInstance();
+    
+    // Initially no service UUID
+    EXPECT_TRUE(manager.getCurrentServiceUUID().empty());
+    
+    // Start scanning with service UUID
+    EXPECT_TRUE(manager.startScanning("test-service-uuid"));
+    EXPECT_EQ(manager.getCurrentServiceUUID(), "test-service-uuid");
+    EXPECT_TRUE(manager.isScanning());
+    
+    // Stop scanning should clear service UUID
+    EXPECT_TRUE(manager.stopScanning());
+    EXPECT_TRUE(manager.getCurrentServiceUUID().empty());
+    EXPECT_FALSE(manager.isScanning());
+}
+
+TEST_F(PassByManagerTest, ScanningWithoutServiceUUID) {
+    auto& manager = PassBy::PassByManager::getInstance();
+    
+    // Start scanning without service UUID (empty string)
+    EXPECT_TRUE(manager.startScanning());
+    EXPECT_TRUE(manager.getCurrentServiceUUID().empty());
+    EXPECT_TRUE(manager.isScanning());
+    
+    // Stop scanning
+    EXPECT_TRUE(manager.stopScanning());
+    EXPECT_FALSE(manager.isScanning());
+}
+
+TEST_F(PassByManagerTest, ServiceUUIDChangeBetweenScans) {
+    auto& manager = PassBy::PassByManager::getInstance();
+    
+    // First scan with UUID1
+    EXPECT_TRUE(manager.startScanning("uuid-1"));
+    EXPECT_EQ(manager.getCurrentServiceUUID(), "uuid-1");
+    
+    // Stop scanning
+    EXPECT_TRUE(manager.stopScanning());
+    EXPECT_TRUE(manager.getCurrentServiceUUID().empty());
+    
+    // Start new scan with UUID2
+    EXPECT_TRUE(manager.startScanning("uuid-2"));
+    EXPECT_EQ(manager.getCurrentServiceUUID(), "uuid-2");
+    
+    // Cleanup
+    manager.stopScanning();
 }

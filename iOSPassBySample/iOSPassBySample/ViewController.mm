@@ -100,17 +100,8 @@
 }
 
 - (void)setupPassBy {
-    // PassBy manager will be created when scanning starts
-    // to use the service UUID from the text field
-}
-
-- (void)createPassByManagerWithServiceUUID:(NSString*)serviceUUID {
-    // Get singleton PassBy manager with service UUID
-    if (serviceUUID && serviceUUID.length > 0) {
-        _passbyManager = &PassBy::PassByManager::getInstance(std::string([serviceUUID UTF8String]));
-    } else {
-        _passbyManager = &PassBy::PassByManager::getInstance();
-    }
+    // Get singleton PassBy manager (no service UUID needed at creation)
+    _passbyManager = &PassBy::PassByManager::getInstance();
     
     // Bridge is automatically set up in PassByManager constructor
     
@@ -126,16 +117,16 @@
     // Clear previous results
     self.devicesTextView.text = @"Discovered devices will appear here...";
     
-    // Get manager with current service UUID
+    // Get service UUID from text field
     NSString *serviceUUID = self.serviceUUIDTextField.text;
-    if (serviceUUID.length == 0) {
-        serviceUUID = nil; // Empty string = scan all devices
+    std::string serviceUUIDString = "";
+    if (serviceUUID && serviceUUID.length > 0) {
+        serviceUUIDString = std::string([serviceUUID UTF8String]);
     }
     
-    [self createPassByManagerWithServiceUUID:serviceUUID];
-    
-    if (_passbyManager->startScanning()) {
-        if (serviceUUID) {
+    // Start scanning with service UUID
+    if (_passbyManager->startScanning(serviceUUIDString)) {
+        if (serviceUUID && serviceUUID.length > 0) {
             self.statusLabel.text = [NSString stringWithFormat:@"PassBy Status: Scanning for %@", serviceUUID];
             NSLog(@"Started BLE scanning for service: %@", serviceUUID);
         } else {
@@ -162,8 +153,16 @@
     
     // Update devices list
     auto discoveredDevices = _passbyManager->getDiscoveredDevices();
-    NSMutableString *devicesText = [[NSMutableString alloc] initWithString:@"Discovered Devices:\n"];
+    auto currentServiceUUID = _passbyManager->getCurrentServiceUUID();
     
+    NSMutableString *devicesText = [[NSMutableString alloc] init];
+    if (!currentServiceUUID.empty()) {
+        [devicesText appendFormat:@"Scanning for: %s\n\n", currentServiceUUID.c_str()];
+    } else {
+        [devicesText appendString:@"Scanning for: All devices\n\n"];
+    }
+    
+    [devicesText appendString:@"Discovered Devices:\n"];
     for (const auto& uuid : discoveredDevices) {
         [devicesText appendFormat:@"• %s\n", uuid.c_str()];
     }

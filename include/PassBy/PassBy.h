@@ -16,13 +16,12 @@ class PassByManager {
 public:
     // Singleton access
     static PassByManager& getInstance();
-    static PassByManager& getInstance(const std::string& serviceUUID);
     
     // No public constructors
     ~PassByManager();
     
-    // Start BLE scanning
-    bool startScanning();
+    // Start BLE scanning with optional service UUID filter
+    bool startScanning(const std::string& serviceUUID = "");
     
     // Stop BLE scanning  
     bool stopScanning();
@@ -39,6 +38,9 @@ public:
     // Clear discovered devices
     void clearDiscoveredDevices();
     
+    // Get current service UUID (empty if not scanning or no filter)
+    const std::string& getCurrentServiceUUID() const;
+    
     // Get library version
     static std::string getVersion();
 
@@ -50,17 +52,14 @@ protected:  // テストビルド時のみprotected
 #else
 private:    // 通常ビルドではprivate
 #endif
-    // Private constructors for singleton
+    // Private constructor for singleton
     PassByManager();
-    explicit PassByManager(const std::string& serviceUUID);
     
     // Copy and move operations deleted
     PassByManager(const PassByManager&) = delete;
     PassByManager& operator=(const PassByManager&) = delete;
     PassByManager(PassByManager&&) = delete;
     PassByManager& operator=(PassByManager&&) = delete;
-    
-    void initialize();
     
     // Singleton instance
     static std::unique_ptr<PassByManager> s_instance;
@@ -71,7 +70,7 @@ private:    // 通常ビルドではprivate
     std::set<std::string> m_discoveredDevices;
     DeviceDiscoveredCallback m_deviceCallback;
     std::unique_ptr<PlatformInterface> m_platform;
-    std::string m_serviceUUID;
+    std::string m_currentServiceUUID;
 };
 
 } // namespace PassBy
