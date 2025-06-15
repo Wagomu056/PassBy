@@ -34,10 +34,6 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
     return _isScanning || _isAdvertising;
 }
 
-- (BOOL)startBLE {
-    return [self startBLEWithServiceUUID:nil];
-}
-
 - (BOOL)startBLEWithServiceUUID:(nullable NSString*)serviceUUID {
     if (self.isActive) {
         return NO;
@@ -62,14 +58,7 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
 
 #pragma mark - Private Methods
 
-- (void)startScanning {
-    [self startScanningWithServiceUUID:nil];
-}
-
 - (void)startScanningWithServiceUUID:(nullable NSString*)serviceUUID {
-    NSLog(@"Starting BLE scanning with service UUID: %@", serviceUUID ?: @"All services");
-    NSLog(@"Central Manager state: %ld", (long)_centralManager.state);
-    
     if (!_isScanning) {
         _isScanning = YES;
         self.pendingServiceUUID = serviceUUID;
