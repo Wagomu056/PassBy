@@ -128,28 +128,28 @@
     if (_passbyManager->startScanning(serviceUUIDString)) {
         if (serviceUUID && serviceUUID.length > 0) {
             self.statusLabel.text = [NSString stringWithFormat:@"PassBy Status: Scanning for %@", serviceUUID];
-            NSLog(@"Started BLE scanning for service: %@", serviceUUID);
+            NSLog(@"[sample] Started BLE scanning for service: %@", serviceUUID);
         } else {
             self.statusLabel.text = @"PassBy Status: Scanning all devices";
             NSLog(@"[sample] Started BLE scanning for all devices");
         }
     } else {
-        NSLog(@"Failed to start BLE scanning");
+        NSLog(@"[sample] Failed to start BLE scanning");
     }
 }
 
 - (void)stopButtonTapped {
     if (_passbyManager && _passbyManager->stopScanning()) {
         self.statusLabel.text = @"PassBy Status: Stopped";
-        NSLog(@"Stopped BLE scanning");
+        NSLog(@"[sample] Stopped BLE scanning");
     } else {
-        NSLog(@"Failed to stop BLE scanning");
+        NSLog(@"[sample] Failed to stop BLE scanning");
     }
 }
 
 - (void)onDeviceDiscovered:(const PassBy::DeviceInfo&)device {
     NSString *deviceUUID = [NSString stringWithUTF8String:device.uuid.c_str()];
-    NSLog(@"Device discovered: %@", deviceUUID);
+    NSLog(@"[sample] Device discovered: %@", deviceUUID);
     
     // Update devices list
     auto discoveredDevices = _passbyManager->getDiscoveredDevices();
