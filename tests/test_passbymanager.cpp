@@ -1,17 +1,18 @@
 #include <gtest/gtest.h>
 #include "PassBy/PassBy.h"
 #include "../src/internal/PassByBridge.h"
+#include "TestPassByManager.h"
 
 class PassByManagerTest : public ::testing::Test {
 protected:
     void SetUp() override {
         // Reset singleton for each test
-        PassBy::PassByManager::_resetForTesting();
+        PassBy::TestPassByManager::resetForTesting();
     }
 
     void TearDown() override {
         // Reset singleton after each test
-        PassBy::PassByManager::_resetForTesting();
+        PassBy::TestPassByManager::resetForTesting();
     }
 };
 

@@ -137,11 +137,5 @@ std::string PassByManager::getVersion() {
     return "0.1.0";
 }
 
-#ifdef PASSBY_TESTING_ENABLED
-void PassByManager::_resetForTesting() {
-    std::lock_guard<std::mutex> lock(s_mutex);
-    s_instance.reset();
-}
-#endif
 
 } // namespace PassBy

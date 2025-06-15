@@ -46,11 +46,10 @@ public:
     void onDeviceDiscovered(const std::string& uuid);
 
 #ifdef PASSBY_TESTING_ENABLED
-    // For testing only - reset singleton state
-    static void _resetForTesting();
+protected:  // テストビルド時のみprotected
+#else
+private:    // 通常ビルドではprivate
 #endif
-
-private:
     // Private constructors for singleton
     PassByManager();
     explicit PassByManager(const std::string& serviceUUID);
