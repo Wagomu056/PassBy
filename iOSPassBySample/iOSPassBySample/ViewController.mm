@@ -15,7 +15,6 @@
 @property (nonatomic, strong) UITextField *serviceUUIDTextField;
 @property (nonatomic, strong) UIButton *startButton;
 @property (nonatomic, strong) UIButton *stopButton;
-@property (nonatomic, strong) UITextView *devicesTextView;
 @property (nonatomic, strong) UIButton *getDevicesButton;
 @property (nonatomic, strong) UITextView *getDevicesResultTextView;
 @end
@@ -67,15 +66,6 @@
     self.stopButton.translatesAutoresizingMaskIntoConstraints = NO;
     [self.view addSubview:self.stopButton];
     
-    // Devices text view
-    self.devicesTextView = [[UITextView alloc] init];
-    self.devicesTextView.text = @"Discovered devices will appear here...";
-    self.devicesTextView.editable = NO;
-    self.devicesTextView.layer.borderColor = [UIColor systemGrayColor].CGColor;
-    self.devicesTextView.layer.borderWidth = 1.0;
-    self.devicesTextView.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.view addSubview:self.devicesTextView];
-    
     // Get devices button
     self.getDevicesButton = [UIButton buttonWithType:UIButtonTypeSystem];
     [self.getDevicesButton setTitle:@"Get Discovered Devices" forState:UIControlStateNormal];
@@ -110,12 +100,7 @@
         [self.stopButton.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
         [self.stopButton.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
         
-        [self.devicesTextView.topAnchor constraintEqualToAnchor:self.stopButton.bottomAnchor constant:20],
-        [self.devicesTextView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
-        [self.devicesTextView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
-        [self.devicesTextView.heightAnchor constraintEqualToConstant:150],
-        
-        [self.getDevicesButton.topAnchor constraintEqualToAnchor:self.devicesTextView.bottomAnchor constant:20],
+        [self.getDevicesButton.topAnchor constraintEqualToAnchor:self.stopButton.bottomAnchor constant:20],
         [self.getDevicesButton.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
         [self.getDevicesButton.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
         
@@ -141,9 +126,6 @@
 }
 
 - (void)startButtonTapped {
-    // Clear previous results
-    self.devicesTextView.text = @"Discovered devices will appear here...";
-    
     // Get service UUID from text field
     NSString *serviceUUID = self.serviceUUIDTextField.text;
     std::string serviceUUIDString = "";
@@ -204,24 +186,6 @@
 - (void)onDeviceDiscovered:(const PassBy::DeviceInfo&)device {
     NSString *deviceUUID = [NSString stringWithUTF8String:device.uuid.c_str()];
     NSLog(@"[sample] Device discovered: %@", deviceUUID);
-    
-    // Update devices list
-    auto discoveredDevices = _passbyManager->getDiscoveredDevices();
-    auto currentServiceUUID = _passbyManager->getCurrentServiceUUID();
-    
-    NSMutableString *devicesText = [[NSMutableString alloc] init];
-    if (!currentServiceUUID.empty()) {
-        [devicesText appendFormat:@"Scanning for: %s\n\n", currentServiceUUID.c_str()];
-    } else {
-        [devicesText appendString:@"Scanning for: All devices\n\n"];
-    }
-    
-    [devicesText appendString:@"Discovered Devices:\n"];
-    for (const auto& uuid : discoveredDevices) {
-        [devicesText appendFormat:@"• %s\n", uuid.c_str()];
-    }
-    
-    self.devicesTextView.text = devicesText;
 }
 
 #pragma mark - UITextFieldDelegate
