@@ -16,6 +16,8 @@
 @property (nonatomic, strong) UIButton *startButton;
 @property (nonatomic, strong) UIButton *stopButton;
 @property (nonatomic, strong) UITextView *devicesTextView;
+@property (nonatomic, strong) UIButton *getDevicesButton;
+@property (nonatomic, strong) UITextView *getDevicesResultTextView;
 @end
 
 @implementation ViewController {
@@ -74,6 +76,22 @@
     self.devicesTextView.translatesAutoresizingMaskIntoConstraints = NO;
     [self.view addSubview:self.devicesTextView];
     
+    // Get devices button
+    self.getDevicesButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    [self.getDevicesButton setTitle:@"Get Discovered Devices" forState:UIControlStateNormal];
+    [self.getDevicesButton addTarget:self action:@selector(getDevicesButtonTapped) forControlEvents:UIControlEventTouchUpInside];
+    self.getDevicesButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.getDevicesButton];
+    
+    // Get devices result text view
+    self.getDevicesResultTextView = [[UITextView alloc] init];
+    self.getDevicesResultTextView.text = @"Results will appear here...";
+    self.getDevicesResultTextView.editable = NO;
+    self.getDevicesResultTextView.layer.borderColor = [UIColor systemGrayColor].CGColor;
+    self.getDevicesResultTextView.layer.borderWidth = 1.0;
+    self.getDevicesResultTextView.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.getDevicesResultTextView];
+    
     // Layout constraints
     [NSLayoutConstraint activateConstraints:@[
         [self.statusLabel.topAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.topAnchor constant:20],
@@ -95,7 +113,16 @@
         [self.devicesTextView.topAnchor constraintEqualToAnchor:self.stopButton.bottomAnchor constant:20],
         [self.devicesTextView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
         [self.devicesTextView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
-        [self.devicesTextView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-20]
+        [self.devicesTextView.heightAnchor constraintEqualToConstant:150],
+        
+        [self.getDevicesButton.topAnchor constraintEqualToAnchor:self.devicesTextView.bottomAnchor constant:20],
+        [self.getDevicesButton.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
+        [self.getDevicesButton.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
+        
+        [self.getDevicesResultTextView.topAnchor constraintEqualToAnchor:self.getDevicesButton.bottomAnchor constant:10],
+        [self.getDevicesResultTextView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
+        [self.getDevicesResultTextView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
+        [self.getDevicesResultTextView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-20]
     ]];
 }
 
@@ -144,6 +171,33 @@
         NSLog(@"[sample] Stopped BLE scanning");
     } else {
         NSLog(@"[sample] Failed to stop BLE scanning");
+    }
+}
+
+- (void)getDevicesButtonTapped {
+    // Clear previous results
+    self.getDevicesResultTextView.text = @"";
+    
+    if (_passbyManager) {
+        auto discoveredDevices = _passbyManager->getDiscoveredDevices();
+        
+        NSMutableString *resultText = [[NSMutableString alloc] init];
+        [resultText appendFormat:@"Total discovered devices: %lu\n\n", (unsigned long)discoveredDevices.size()];
+        
+        if (discoveredDevices.empty()) {
+            [resultText appendString:@"No devices discovered yet."];
+        } else {
+            [resultText appendString:@"Device UUIDs:\n"];
+            for (const auto& uuid : discoveredDevices) {
+                [resultText appendFormat:@"• %s\n", uuid.c_str()];
+            }
+        }
+        
+        self.getDevicesResultTextView.text = resultText;
+        NSLog(@"[sample] getDiscoveredDevices called - found %lu devices", (unsigned long)discoveredDevices.size());
+    } else {
+        self.getDevicesResultTextView.text = @"Error: PassBy manager not initialized";
+        NSLog(@"[sample] Error: PassBy manager not initialized");
     }
 }
 
