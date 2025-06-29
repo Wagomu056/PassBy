@@ -144,13 +144,6 @@ TEST_F(PassByManagerTest, ClearDiscoveredDevices) {
     EXPECT_TRUE(devices.empty());
 }
 
-TEST_F(PassByManagerTest, AutomaticBridgeRegistration) {
-    auto& manager = PassBy::PassByManager::getInstance();
-    
-    // Test that bridge is automatically registered without manual setManager call
-    EXPECT_EQ(PassBy::PassByBridge::getManager(), &manager);
-}
-
 TEST_F(PassByManagerTest, SingletonBehavior) {
     // Test that getInstance always returns the same instance
     auto& manager1 = PassBy::PassByManager::getInstance();

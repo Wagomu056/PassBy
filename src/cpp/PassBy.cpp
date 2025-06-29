@@ -1,9 +1,7 @@
 #include "PassBy/PassBy.h"
 #include "../internal/PassByBridge.h"
 #include "../internal/PlatformInterface.h"
-#if TARGET_OS_IPHONE
-#include "../ios/PassBy/PassByiOSPlatform.h"
-#endif
+#include "../internal/PlatformFactory.h"
 
 namespace PassBy {
 
@@ -23,19 +21,8 @@ PassByManager& PassByManager::getInstance() {
 
 
 PassByManager::PassByManager() : m_isScanning(false), m_deviceCallback(nullptr), m_currentServiceUUID("") {
-    // Create platform if not provided
-    if (!m_platform) {
-#if TARGET_OS_IPHONE
-        m_platform = std::make_unique<iOSPlatform>();
-#elif defined(ANDROID)
-        // TODO: Add Android platform when implemented
-        // m_platform = std::make_unique<AndroidPlatform>();
-        m_platform = nullptr;
-#else
-        // For testing/development on macOS
-        m_platform = nullptr;
-#endif
-    }
+    // Create platform using factory
+    m_platform = PlatformFactory::createPlatform();
     
     // Automatically register this manager with the bridge
     PassByBridge::setManager(this);

@@ -20,6 +20,7 @@ if(APPLE)
     list(APPEND SOURCES
         ios/PassBy/PassByBLEManager.mm
         ios/PassBy/PassByiOSPlatform.mm
+        src/platform/ios/iOSPlatformFactory.cpp
     )
     
     # iOS specific settings
@@ -31,6 +32,10 @@ if(APPLE)
 elseif(ANDROID)
     # Add Android-specific sources (placeholder)
     # list(APPEND SOURCES android/...)
+    # list(APPEND SOURCES src/platform/android/AndroidPlatformFactory.cpp)
+else()
+    # For testing/development (macOS, Linux, etc.)
+    list(APPEND SOURCES tests/MockPlatformFactory.cpp)
 endif()
 
 # Create library (dynamic on Apple platforms, static elsewhere)
