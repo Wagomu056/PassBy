@@ -17,17 +17,24 @@
 @property (nonatomic, strong) UIButton *stopButton;
 @property (nonatomic, strong) UIButton *getDevicesButton;
 @property (nonatomic, strong) UITextView *getDevicesResultTextView;
+@property (nonatomic, strong) UILabel *backgroundLabel;
+@property (nonatomic, strong) UITextView *backgroundLogTextView;
+@property (nonatomic, strong) UIButton *clearLogButton;
 @end
 
 @implementation ViewController {
     PassBy::PassByManager* _passbyManager;
+    NSMutableArray<NSString*>* _backgroundLog;
+    NSDateFormatter* _dateFormatter;
 }
 
 - (void)viewDidLoad {
     [super viewDidLoad];
     
+    [self initializeComponents];
     [self setupUI];
     [self setupPassBy];
+    [self setupNotificationObservers];
 }
 
 - (void)setupUI {
@@ -107,8 +114,54 @@
         [self.getDevicesResultTextView.topAnchor constraintEqualToAnchor:self.getDevicesButton.bottomAnchor constant:10],
         [self.getDevicesResultTextView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
         [self.getDevicesResultTextView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
-        [self.getDevicesResultTextView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-20]
+        [self.getDevicesResultTextView.heightAnchor constraintEqualToConstant:120]
     ]];
+    
+    // Background detection section
+    self.backgroundLabel = [[UILabel alloc] init];
+    self.backgroundLabel.text = @"Background Detection Log:";
+    self.backgroundLabel.font = [UIFont boldSystemFontOfSize:16];
+    self.backgroundLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.backgroundLabel];
+    
+    // Clear log button
+    self.clearLogButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    [self.clearLogButton setTitle:@"Clear Log" forState:UIControlStateNormal];
+    [self.clearLogButton addTarget:self action:@selector(clearLogButtonTapped) forControlEvents:UIControlEventTouchUpInside];
+    self.clearLogButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.clearLogButton];
+    
+    // Background log text view
+    self.backgroundLogTextView = [[UITextView alloc] init];
+    self.backgroundLogTextView.text = @"Background detection results will appear here...";
+    self.backgroundLogTextView.editable = NO;
+    self.backgroundLogTextView.layer.borderColor = [UIColor systemOrangeColor].CGColor;
+    self.backgroundLogTextView.layer.borderWidth = 1.0;
+    self.backgroundLogTextView.font = [UIFont systemFontOfSize:12];
+    self.backgroundLogTextView.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.backgroundLogTextView];
+    
+    // Additional layout constraints
+    [NSLayoutConstraint activateConstraints:@[
+        [self.backgroundLabel.topAnchor constraintEqualToAnchor:self.getDevicesResultTextView.bottomAnchor constant:20],
+        [self.backgroundLabel.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
+        [self.backgroundLabel.widthAnchor constraintEqualToConstant:200],
+        
+        [self.clearLogButton.topAnchor constraintEqualToAnchor:self.getDevicesResultTextView.bottomAnchor constant:20],
+        [self.clearLogButton.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
+        [self.clearLogButton.widthAnchor constraintEqualToConstant:80],
+        
+        [self.backgroundLogTextView.topAnchor constraintEqualToAnchor:self.backgroundLabel.bottomAnchor constant:10],
+        [self.backgroundLogTextView.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
+        [self.backgroundLogTextView.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
+        [self.backgroundLogTextView.bottomAnchor constraintEqualToAnchor:self.view.safeAreaLayoutGuide.bottomAnchor constant:-20]
+    ]];
+}
+
+- (void)initializeComponents {
+    _backgroundLog = [[NSMutableArray alloc] init];
+    _dateFormatter = [[NSDateFormatter alloc] init];
+    [_dateFormatter setDateFormat:@"HH:mm:ss"];
 }
 
 - (void)setupPassBy {
@@ -119,8 +172,9 @@
     
     // Set up device discovery callback
     _passbyManager->setDeviceDiscoveredCallback([self](const PassBy::DeviceInfo& device) {
+        PassBy::DeviceInfo deviceCopy = device;
         dispatch_async(dispatch_get_main_queue(), ^{
-            [self onDeviceDiscovered:device];
+            [self onDeviceDiscovered:deviceCopy];
         });
     });
 }
@@ -184,8 +238,84 @@
 }
 
 - (void)onDeviceDiscovered:(const PassBy::DeviceInfo&)device {
-    NSString *deviceUUID = [NSString stringWithUTF8String:device.uuid.c_str()];
-    NSLog(@"[sample] Device discovered: %@", deviceUUID);
+    // Safe UUID conversion
+    NSString *deviceUUID = @"<INVALID UUID>";
+    if (!device.uuid.empty()) {
+        const char* cString = device.uuid.c_str();
+        if (cString && strlen(cString) > 0) {
+            deviceUUID = [NSString stringWithUTF8String:cString];
+        }
+    }
+    
+    NSString *timestamp = [_dateFormatter stringFromDate:[NSDate date]];
+    NSString *appState = [[UIApplication sharedApplication] applicationState] == UIApplicationStateBackground ? @"Background" : @"Foreground";
+    
+    NSString *logEntry = [NSString stringWithFormat:@"[%@] %@: %@", timestamp, appState, deviceUUID];
+    [_backgroundLog addObject:logEntry];
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self updateBackgroundLogDisplay];
+    });
+    
+    NSLog(@"[sample] Device discovered (%@): %@", appState, deviceUUID);
+}
+
+- (void)clearLogButtonTapped {
+    [_backgroundLog removeAllObjects];
+    [self updateBackgroundLogDisplay];
+    NSLog(@"[sample] Background log cleared");
+}
+
+- (void)updateBackgroundLogDisplay {
+    if (_backgroundLog.count == 0) {
+        self.backgroundLogTextView.text = @"Background detection results will appear here...";
+    } else {
+        self.backgroundLogTextView.text = [_backgroundLog componentsJoinedByString:@"\n"];
+        
+        // Auto-scroll to bottom
+        NSRange bottom = NSMakeRange(self.backgroundLogTextView.text.length - 1, 1);
+        [self.backgroundLogTextView scrollRangeToVisible:bottom];
+    }
+}
+
+- (void)setupNotificationObservers {
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(applicationDidEnterBackground:)
+                                                 name:UIApplicationDidEnterBackgroundNotification
+                                               object:nil];
+    
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(applicationWillEnterForeground:)
+                                                 name:UIApplicationWillEnterForegroundNotification
+                                               object:nil];
+}
+
+- (void)applicationDidEnterBackground:(NSNotification *)notification {
+    NSString *timestamp = [_dateFormatter stringFromDate:[NSDate date]];
+    NSString *logEntry = [NSString stringWithFormat:@"[%@] App entered background", timestamp];
+    [_backgroundLog addObject:logEntry];
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self updateBackgroundLogDisplay];
+    });
+    
+    NSLog(@"[sample] App entered background - BLE scanning should continue");
+}
+
+- (void)applicationWillEnterForeground:(NSNotification *)notification {
+    NSString *timestamp = [_dateFormatter stringFromDate:[NSDate date]];
+    NSString *logEntry = [NSString stringWithFormat:@"[%@] App returned to foreground", timestamp];
+    [_backgroundLog addObject:logEntry];
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self updateBackgroundLogDisplay];
+    });
+    
+    NSLog(@"[sample] App returned to foreground");
+}
+
+- (void)dealloc {
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 
 #pragma mark - UITextFieldDelegate
