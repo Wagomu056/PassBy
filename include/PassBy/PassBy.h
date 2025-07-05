@@ -5,7 +5,7 @@
 #include <set>
 #include <memory>
 #include <mutex>
-#include "PassByTypes.h"
+#include <PassBy/PassByTypes.h>
 
 namespace PassBy {
 
