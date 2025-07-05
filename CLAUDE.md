@@ -161,8 +161,11 @@ if (manager.stopScanning()) {
     
     // デバイス発見コールバックの設定（メインスレッドで実行）
     _passbyManager->setDeviceDiscoveredCallback([self](const PassBy::DeviceInfo& device) {
+        PassBy::DeviceInfo deviceCopy = device;
+        // Core Bluetooth callbacks are executed on background thread,
+        // so dispatch to main queue for UI updates
         dispatch_async(dispatch_get_main_queue(), ^{
-            [self onDeviceDiscovered:device];
+            [self onDeviceDiscovered:deviceCopy];
         });
     });
 }
@@ -177,8 +180,13 @@ if (manager.stopScanning()) {
     
     // スキャニング開始
     if (_passbyManager->startScanning(serviceUUIDString)) {
-        self.statusLabel.text = @"PassBy Status: Scanning";
-        NSLog(@"Started BLE scanning");
+        if (serviceUUID && serviceUUID.length > 0) {
+            self.statusLabel.text = [NSString stringWithFormat:@"PassBy Status: Scanning for %@", serviceUUID];
+            NSLog(@"Started BLE scanning for service: %@", serviceUUID);
+        } else {
+            self.statusLabel.text = @"PassBy Status: Scanning all devices";
+            NSLog(@"Started BLE scanning for all devices");
+        }
     } else {
         NSLog(@"Failed to start BLE scanning");
     }
@@ -188,6 +196,8 @@ if (manager.stopScanning()) {
     if (_passbyManager && _passbyManager->stopScanning()) {
         self.statusLabel.text = @"PassBy Status: Stopped";
         NSLog(@"Stopped BLE scanning");
+    } else {
+        NSLog(@"Failed to stop BLE scanning");
     }
 }
 
@@ -196,21 +206,35 @@ if (manager.stopScanning()) {
         auto discoveredDevices = _passbyManager->getDiscoveredDevices();
         NSMutableString *resultText = [[NSMutableString alloc] init];
         
-        [resultText appendFormat:@"Total devices: %lu\n", (unsigned long)discoveredDevices.size()];
-        for (const auto& uuid : discoveredDevices) {
-            [resultText appendFormat:@"• %s\n", uuid.c_str()];
+        [resultText appendFormat:@"Total discovered devices: %lu\n\n", (unsigned long)discoveredDevices.size()];
+        
+        if (discoveredDevices.empty()) {
+            [resultText appendString:@"No devices discovered yet."];
+        } else {
+            [resultText appendString:@"Device UUIDs:\n"];
+            for (const auto& uuid : discoveredDevices) {
+                [resultText appendFormat:@"• %s\n", uuid.c_str()];
+            }
         }
         
-        self.resultTextView.text = resultText;
+    } else {
+        NSLog(@"Error: PassBy manager not initialized");
     }
 }
 
 - (void)onDeviceDiscovered:(const PassBy::DeviceInfo&)device {
-    NSString *deviceUUID = [NSString stringWithUTF8String:device.uuid.c_str()];
-    NSLog(@"Device discovered: %@", deviceUUID);
+    // Safe UUID conversion
+    NSString *deviceUUID = @"<INVALID UUID>";
+    if (!device.uuid.empty()) {
+        const char* cString = device.uuid.c_str();
+        if (cString && strlen(cString) > 0) {
+            deviceUUID = [NSString stringWithUTF8String:cString];
+        }
+    }
     
-    // UIの更新など
-    [self updateDeviceList];
+    NSString *appState = [[UIApplication sharedApplication] applicationState] == UIApplicationStateBackground ? @"Background" : @"Foreground";
+    
+    NSLog(@"Device discovered (%@): %@", appState, deviceUUID);
 }
 
 @end
@@ -226,6 +250,8 @@ if (manager.stopScanning()) {
 - `setDeviceDiscoveredCallback()`: デバイス発見コールバックの設定
 - `getDiscoveredDevices()`: 発見されたデバイスUUIDのリストを取得
 - `clearDiscoveredDevices()`: 発見されたデバイスリストをクリア
+- `getCurrentServiceUUID()`: 現在のサービスUUIDを取得（スキャニング中でない場合は空文字）
+- `getVersion()`: ライブラリのバージョンを取得
 
 #### 実装上の注意点
 - PassByManagerはシングルトンなので、複数箇所から同一インスタンスを取得可能
