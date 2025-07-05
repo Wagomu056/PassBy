@@ -2,7 +2,5 @@
 .DS_Store
 /.vscode
 *.xcuserstate
-/build-ios-device
-/build-ios-simulator
 /build_test
 /iOSPassBySample/iOSPassBySample.xcodeproj/xcuserdata

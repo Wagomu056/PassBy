@@ -19,8 +19,7 @@ PassBy/
 ├── tests/                 # Test files and mocks
 ├── iOSPassBySample/       # iOS sample application
 ├── build_and_test.sh      # Build script for testing
-├── build_ios_dev.sh       # iOS development build script
-├── build_ios_framework.sh # iOS framework build script
+├── build_ios.sh           # iOS framework build script (unified)
 ├── run_tests.sh           # Test execution script
 └── CMakeLists.txt         # Build configuration
 ```
@@ -44,11 +43,12 @@ make test
 
 ### iOS Framework Build
 ```bash
-# Quick development build (device only)
-./build_ios_dev.sh
+# Development build (Debug mode)
+./build_ios.sh --dev
 
-# Universal framework (device + simulator)
-./build_ios_framework.sh
+# Release build (optimized, default)
+./build_ios.sh
+./build_ios.sh --release
 ```
 
 ### Manual iOS Build
