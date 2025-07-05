@@ -10,11 +10,19 @@ PassBy is a cross-platform mobile game library for BLE (Bluetooth Low Energy) en
 
 ```
 PassBy/
-├── include/PassBy/     # Public headers
-├── src/cpp/           # Shared C++ implementation
-├── ios/               # iOS-specific wrapper code
-├── android/           # Android-specific wrapper code
-└── CMakeLists.txt     # Build configuration
+├── include/PassBy/         # Public headers
+├── src/
+│   ├── cpp/               # Shared C++ implementation
+│   ├── internal/          # Internal headers (PlatformFactory, PlatformInterface)
+│   └── platform/ios/      # iOS platform factory implementation
+├── ios/PassBy/            # iOS-specific wrapper code (BLE manager)
+├── tests/                 # Test files and mocks
+├── iOSPassBySample/       # iOS sample application
+├── build_and_test.sh      # Build script for testing
+├── build_ios_dev.sh       # iOS development build script
+├── build_ios_framework.sh # iOS framework build script
+├── run_tests.sh           # Test execution script
+└── CMakeLists.txt         # Build configuration
 ```
 
 ## Build Commands
