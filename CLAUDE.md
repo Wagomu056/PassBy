@@ -96,6 +96,143 @@ make
 - **Testing**: Create Android sample app equivalent to iOS version
 - **Priority**: Medium - Completes cross-platform support
 
+## PassByクラスの使用例
+
+### 基本的な初期化と使用方法
+
+```cpp
+#include <PassBy/PassBy.h>
+#include <PassBy/PassByTypes.h>
+
+// 1. シングルトンインスタンスの取得
+PassBy::PassByManager& manager = PassBy::PassByManager::getInstance();
+
+// 2. デバイス発見コールバックの設定
+manager.setDeviceDiscoveredCallback([](const PassBy::DeviceInfo& device) {
+    // デバイスが発見されたときの処理
+    printf("Device discovered: %s\n", device.uuid.c_str());
+});
+
+// 3. BLEスキャニングの開始
+// 特定のサービスUUIDで絞り込み
+std::string serviceUUID = "12345678-1234-1234-1234-123456789ABC";
+if (manager.startScanning(serviceUUID)) {
+    printf("Started scanning for service: %s\n", serviceUUID.c_str());
+} else {
+    printf("Failed to start scanning\n");
+}
+
+// または、すべてのデバイスをスキャン
+if (manager.startScanning()) {
+    printf("Started scanning all devices\n");
+}
+
+// 4. 発見されたデバイスの取得
+auto devices = manager.getDiscoveredDevices();
+printf("Found %zu devices\n", devices.size());
+for (const auto& uuid : devices) {
+    printf("Device: %s\n", uuid.c_str());
+}
+
+// 5. スキャニングの停止
+if (manager.stopScanning()) {
+    printf("Stopped scanning\n");
+}
+```
+
+### iOS（Objective-C++）での使用例
+
+```objc
+// ViewController.mm での実装例
+
+#import "ViewController.h"
+#include <PassBy/PassBy.h>
+#include <PassBy/PassByTypes.h>
+
+@implementation ViewController {
+    PassBy::PassByManager* _passbyManager;
+}
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    
+    // シングルトンインスタンスの取得
+    _passbyManager = &PassBy::PassByManager::getInstance();
+    
+    // デバイス発見コールバックの設定（メインスレッドで実行）
+    _passbyManager->setDeviceDiscoveredCallback([self](const PassBy::DeviceInfo& device) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self onDeviceDiscovered:device];
+        });
+    });
+}
+
+- (void)startScanning {
+    // テキストフィールドからサービスUUIDを取得
+    NSString *serviceUUID = self.serviceUUIDTextField.text;
+    std::string serviceUUIDString = "";
+    if (serviceUUID && serviceUUID.length > 0) {
+        serviceUUIDString = std::string([serviceUUID UTF8String]);
+    }
+    
+    // スキャニング開始
+    if (_passbyManager->startScanning(serviceUUIDString)) {
+        self.statusLabel.text = @"PassBy Status: Scanning";
+        NSLog(@"Started BLE scanning");
+    } else {
+        NSLog(@"Failed to start BLE scanning");
+    }
+}
+
+- (void)stopScanning {
+    if (_passbyManager && _passbyManager->stopScanning()) {
+        self.statusLabel.text = @"PassBy Status: Stopped";
+        NSLog(@"Stopped BLE scanning");
+    }
+}
+
+- (void)getDiscoveredDevices {
+    if (_passbyManager) {
+        auto discoveredDevices = _passbyManager->getDiscoveredDevices();
+        NSMutableString *resultText = [[NSMutableString alloc] init];
+        
+        [resultText appendFormat:@"Total devices: %lu\n", (unsigned long)discoveredDevices.size()];
+        for (const auto& uuid : discoveredDevices) {
+            [resultText appendFormat:@"• %s\n", uuid.c_str()];
+        }
+        
+        self.resultTextView.text = resultText;
+    }
+}
+
+- (void)onDeviceDiscovered:(const PassBy::DeviceInfo&)device {
+    NSString *deviceUUID = [NSString stringWithUTF8String:device.uuid.c_str()];
+    NSLog(@"Device discovered: %@", deviceUUID);
+    
+    // UIの更新など
+    [self updateDeviceList];
+}
+
+@end
+```
+
+### 主要APIの説明
+
+#### PassByManager（シングルトン）
+- `getInstance()`: インスタンスを取得
+- `startScanning(serviceUUID)`: BLEスキャニング開始
+- `stopScanning()`: BLEスキャニング停止
+- `isScanning()`: スキャニング中かどうか確認
+- `setDeviceDiscoveredCallback()`: デバイス発見コールバックの設定
+- `getDiscoveredDevices()`: 発見されたデバイスUUIDのリストを取得
+- `clearDiscoveredDevices()`: 発見されたデバイスリストをクリア
+
+#### 実装上の注意点
+- PassByManagerはシングルトンなので、複数箇所から同一インスタンスを取得可能
+- デバイス発見コールバックは別スレッドで実行されるため、UI更新時はメインスレッドにディスパッチ
+- サービスUUIDは空文字列を渡すとすべてのデバイスをスキャン
+- iOSでは Core Bluetooth フレームワークを使用（バックグラウンドモードが必要）
+
 ### Notes for Development
 - Always run tests before committing changes: `./build_and_test.sh`
 - iOS framework build: `./build_ios_framework.sh`
