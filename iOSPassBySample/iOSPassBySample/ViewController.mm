@@ -173,6 +173,8 @@
     // Set up device discovery callback
     _passbyManager->setDeviceDiscoveredCallback([self](const PassBy::DeviceInfo& device) {
         PassBy::DeviceInfo deviceCopy = device;
+        // Core Bluetooth callbacks are executed on background thread,
+        // so dispatch to main queue for UI updates
         dispatch_async(dispatch_get_main_queue(), ^{
             [self onDeviceDiscovered:deviceCopy];
         });
