@@ -9,15 +9,9 @@ void PassByBridge::setManager(PassByManager* manager) {
     s_manager = manager;
 }
 
-void PassByBridge::onDeviceDiscovered(const std::string& uuid) {
+void PassByBridge::onDeviceDiscovered(const std::string& uuid, const std::string& deviceHash) {
     if (s_manager) {
-        s_manager->onDeviceDiscovered(uuid);
-    }
-}
-
-void PassByBridge::onDeviceDiscoveredWithHash(const std::string& uuid, const std::string& deviceHash) {
-    if (s_manager) {
-        s_manager->onDeviceDiscoveredWithHash(uuid, deviceHash);
+        s_manager->onDeviceDiscovered(uuid, deviceHash);
     }
 }
 

@@ -256,7 +256,7 @@ static const uint16_t kPassByCompanyIdentifier = 0x004C;
     
     // Report to C++ layer via bridge
     if (deviceHash) {
-        PassBy::PassByBridge::onDeviceDiscoveredWithHash([deviceUUID UTF8String], [deviceHash UTF8String]);
+        PassBy::PassByBridge::onDeviceDiscovered([deviceUUID UTF8String], [deviceHash UTF8String]);
     } else {
         PassBy::PassByBridge::onDeviceDiscovered([deviceUUID UTF8String]);
     }

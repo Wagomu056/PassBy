@@ -108,8 +108,8 @@ TEST_F(PassByManagerTest, DeviceDiscoveryWithHash) {
     });
     
     // Simulate device discovery via bridge with hash
-    PassBy::PassByBridge::onDeviceDiscoveredWithHash("test-uuid-1", "abcdef1234567890");
-    PassBy::PassByBridge::onDeviceDiscoveredWithHash("test-uuid-2", "1234567890abcdef");
+    PassBy::PassByBridge::onDeviceDiscovered("test-uuid-1", "abcdef1234567890");
+    PassBy::PassByBridge::onDeviceDiscovered("test-uuid-2", "1234567890abcdef");
     
     // Check callback was called
     EXPECT_EQ(discoveredDevices.size(), 2);

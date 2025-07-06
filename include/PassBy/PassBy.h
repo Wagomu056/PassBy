@@ -45,10 +45,7 @@ public:
     static std::string getVersion();
 
     // Called by platform-specific code when device is discovered
-    void onDeviceDiscovered(const std::string& uuid);
-    
-    // Called by platform-specific code when device is discovered with hash
-    void onDeviceDiscoveredWithHash(const std::string& uuid, const std::string& deviceHash);
+    void onDeviceDiscovered(const std::string& uuid, const std::string& deviceHash = "");
 
 #ifdef PASSBY_TESTING_ENABLED
 protected:  // テストビルド時のみprotected
