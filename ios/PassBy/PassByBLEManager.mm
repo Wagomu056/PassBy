@@ -6,8 +6,6 @@
 static NSString * const kPassByServiceUUID = @"12345678-1234-1234-1234-123456789ABC";
 static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CBA987654321";
 
-// Company identifier for manufacturer data (using Apple's for development)
-static const uint16_t kPassByCompanyIdentifier = 0x004C;
 
 @interface PassByBLEManager ()
 
@@ -82,40 +80,18 @@ static const uint16_t kPassByCompanyIdentifier = 0x004C;
 }
 
 - (NSData*)createManufacturerData:(NSString*)deviceIdentifier {
-    NSMutableData* manufacturerData = [NSMutableData data];
-    
-    // Add company identifier (little-endian)
-    uint16_t companyId = CFSwapInt16HostToLittle(kPassByCompanyIdentifier);
-    [manufacturerData appendBytes:&companyId length:sizeof(companyId)];
-    
-    // Add device hash if available
-    NSData* deviceHash = [self hashDeviceIdentifier:deviceIdentifier];
-    if (deviceHash) {
-        [manufacturerData appendData:deviceHash];
-    }
-    
-    return [manufacturerData copy];
+    // Return device hash only
+    return [self hashDeviceIdentifier:deviceIdentifier];
 }
 
 - (NSString*)extractDeviceHashFromManufacturerData:(NSData*)manufacturerData {
-    if (!manufacturerData || manufacturerData.length < 10) {
+    if (!manufacturerData || manufacturerData.length < 8) {
         return nil;
     }
-    
-    const uint8_t* bytes = (const uint8_t*)manufacturerData.bytes;
-    
-    // Check company identifier (first 2 bytes, little-endian)
-    uint16_t companyId = CFSwapInt16LittleToHost(*(uint16_t*)bytes);
-    if (companyId != kPassByCompanyIdentifier) {
-        return nil;
-    }
-    
-    // Extract device hash (next 8 bytes)
-    NSData* hashData = [NSData dataWithBytes:bytes + 2 length:8];
     
     // Convert to hex string
     NSMutableString* hashString = [NSMutableString string];
-    const uint8_t* hashBytes = (const uint8_t*)hashData.bytes;
+    const uint8_t* hashBytes = (const uint8_t*)manufacturerData.bytes;
     for (int i = 0; i < 8; i++) {
         [hashString appendFormat:@"%02x", hashBytes[i]];
     }
@@ -248,7 +224,7 @@ static const uint16_t kPassByCompanyIdentifier = 0x004C;
         if (deviceHash) {
             NSLog(@"Discovered device: %@ (Name: %@, RSSI: %@, Hash: %@)", deviceUUID, deviceName, RSSI, deviceHash);
         } else {
-            NSLog(@"Discovered device: %@ (Name: %@, RSSI: %@, Invalid manufacturer data)", deviceUUID, deviceName, RSSI);
+            NSLog(@"Discovered device: %@ (Name: %@, RSSI: %@, No device hash)", deviceUUID, deviceName, RSSI);
         }
     } else {
         NSLog(@"Discovered device: %@ (Name: %@, RSSI: %@, No manufacturer data)", deviceUUID, deviceName, RSSI);
