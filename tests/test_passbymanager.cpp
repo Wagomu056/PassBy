@@ -23,7 +23,7 @@ TEST_F(PassByManagerTest, InitialState) {
 
 TEST_F(PassByManagerTest, StartScanning) {
     auto& manager = PassBy::PassByManager::getInstance();
-    EXPECT_TRUE(manager.startScanning());
+    EXPECT_TRUE(manager.startScanning("", ""));
     EXPECT_TRUE(manager.isScanning());
     manager.stopScanning(); // cleanup
 }
@@ -37,7 +37,7 @@ TEST_F(PassByManagerTest, StartScanningWithDeviceIdentifier) {
 
 TEST_F(PassByManagerTest, StopScanning) {
     auto& manager = PassBy::PassByManager::getInstance();
-    manager.startScanning();
+    manager.startScanning("", "");
     EXPECT_TRUE(manager.isScanning());
     
     EXPECT_TRUE(manager.stopScanning());
@@ -46,15 +46,15 @@ TEST_F(PassByManagerTest, StopScanning) {
 
 TEST_F(PassByManagerTest, StartScanningTwice) {
     auto& manager = PassBy::PassByManager::getInstance();
-    EXPECT_TRUE(manager.startScanning());
-    EXPECT_FALSE(manager.startScanning()); // Should return false when already scanning
+    EXPECT_TRUE(manager.startScanning("", ""));
+    EXPECT_FALSE(manager.startScanning("", "")); // Should return false when already scanning
     EXPECT_TRUE(manager.isScanning());
     manager.stopScanning(); // cleanup
 }
 
 TEST_F(PassByManagerTest, StopScanningTwice) {
     auto& manager = PassBy::PassByManager::getInstance();
-    manager.startScanning();
+    manager.startScanning("", "");
     EXPECT_TRUE(manager.stopScanning());
     EXPECT_FALSE(manager.stopScanning()); // Should return false when not scanning
     EXPECT_FALSE(manager.isScanning());
@@ -207,7 +207,7 @@ TEST_F(PassByManagerTest, ScanningWithoutServiceUUID) {
     auto& manager = PassBy::PassByManager::getInstance();
     
     // Start scanning without service UUID (empty string)
-    EXPECT_TRUE(manager.startScanning());
+    EXPECT_TRUE(manager.startScanning("", ""));
     EXPECT_TRUE(manager.getCurrentServiceUUID().empty());
     EXPECT_TRUE(manager.isScanning());
     

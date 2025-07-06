@@ -10,7 +10,7 @@ public:
     virtual ~PlatformInterface() = default;
     
     // Start BLE scanning and advertising (empty serviceUUID = all devices)
-    virtual bool startBLE(const std::string& serviceUUID = "", const std::string& deviceIdentifier = "") = 0;
+    virtual bool startBLE(const std::string& serviceUUID, const std::string& deviceIdentifier) = 0;
     
     // Stop BLE scanning and advertising
     virtual bool stopBLE() = 0;

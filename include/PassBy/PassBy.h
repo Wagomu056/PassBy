@@ -20,8 +20,8 @@ public:
     // No public constructors
     ~PassByManager();
     
-    // Start BLE scanning with optional service UUID filter and device identifier
-    bool startScanning(const std::string& serviceUUID = "", const std::string& deviceIdentifier = "");
+    // Start BLE scanning with service UUID filter and device identifier
+    bool startScanning(const std::string& serviceUUID, const std::string& deviceIdentifier);
     
     // Stop BLE scanning  
     bool stopScanning();
