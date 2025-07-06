@@ -19,13 +19,13 @@ bool iOSPlatform::startBLE(const std::string& serviceUUID, const std::string& de
         return false;
     }
     
-    // deviceIdentifier must be non-empty, serviceUUID can be empty (for scanning all devices)
-    if (deviceIdentifier.empty()) {
-        NSLog(@"Error: deviceIdentifier cannot be empty");
+    // Both serviceUUID and deviceIdentifier must be non-empty
+    if (serviceUUID.empty() || deviceIdentifier.empty()) {
+        NSLog(@"Error: serviceUUID and deviceIdentifier cannot be empty");
         return false;
     }
     
-    NSString* nsServiceUUID = serviceUUID.empty() ? nil : [NSString stringWithUTF8String:serviceUUID.c_str()];
+    NSString* nsServiceUUID = [NSString stringWithUTF8String:serviceUUID.c_str()];
     NSString* nsDeviceIdentifier = [NSString stringWithUTF8String:deviceIdentifier.c_str()];
     NSLog(@"Starting BLE with service UUID: %@, device identifier: %@", nsServiceUUID, nsDeviceIdentifier);
     return [m_bleManager startBLEWithServiceUUID:nsServiceUUID deviceIdentifier:nsDeviceIdentifier];

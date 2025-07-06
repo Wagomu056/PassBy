@@ -204,13 +204,8 @@ TEST_F(PassByManagerTest, ServiceUUIDHandling) {
 TEST_F(PassByManagerTest, ScanningWithoutServiceUUID) {
     auto& manager = PassBy::PassByManager::getInstance();
     
-    // Start scanning without service UUID (empty string)
-    EXPECT_TRUE(manager.startScanning("", "test-device"));
-    EXPECT_TRUE(manager.getCurrentServiceUUID().empty());
-    EXPECT_TRUE(manager.isScanning());
-    
-    // Stop scanning
-    EXPECT_TRUE(manager.stopScanning());
+    // Start scanning without service UUID (empty string) should fail
+    EXPECT_FALSE(manager.startScanning("", "test-device"));
     EXPECT_FALSE(manager.isScanning());
 }
 
