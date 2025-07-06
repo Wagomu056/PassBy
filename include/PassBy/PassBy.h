@@ -32,7 +32,7 @@ public:
     // Set callback for device discovery
     void setDeviceDiscoveredCallback(DeviceDiscoveredCallback callback);
     
-    // Get discovered devices
+    // Get discovered devices (device hashes)
     std::vector<std::string> getDiscoveredDevices() const;
     
     // Clear discovered devices
@@ -45,7 +45,7 @@ public:
     static std::string getVersion();
 
     // Called by platform-specific code when device is discovered
-    void onDeviceDiscovered(const std::string& uuid, const std::string& deviceHash = "");
+    void onDeviceDiscovered(const std::string& deviceHash);
 
 #ifdef PASSBY_TESTING_ENABLED
 protected:  // テストビルド時のみprotected

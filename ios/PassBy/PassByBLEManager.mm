@@ -230,9 +230,7 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
     
     // Report to C++ layer via bridge
     if (deviceHash) {
-        PassBy::PassByBridge::onDeviceDiscovered([deviceUUID UTF8String], [deviceHash UTF8String]);
-    } else {
-        PassBy::PassByBridge::onDeviceDiscovered([deviceUUID UTF8String]);
+        PassBy::PassByBridge::onDeviceDiscovered([deviceHash UTF8String]);
     }
 }
 

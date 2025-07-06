@@ -23,21 +23,21 @@ TEST_F(PassByManagerTest, InitialState) {
 
 TEST_F(PassByManagerTest, StartScanning) {
     auto& manager = PassBy::PassByManager::getInstance();
-    EXPECT_TRUE(manager.startScanning("", ""));
+    EXPECT_TRUE(manager.startScanning("test-service", "test-device"));
     EXPECT_TRUE(manager.isScanning());
     manager.stopScanning(); // cleanup
 }
 
 TEST_F(PassByManagerTest, StartScanningWithDeviceIdentifier) {
     auto& manager = PassBy::PassByManager::getInstance();
-    EXPECT_TRUE(manager.startScanning("", "test-device-id"));
+    EXPECT_TRUE(manager.startScanning("test-service", "test-device-id"));
     EXPECT_TRUE(manager.isScanning());
     manager.stopScanning(); // cleanup
 }
 
 TEST_F(PassByManagerTest, StopScanning) {
     auto& manager = PassBy::PassByManager::getInstance();
-    manager.startScanning("", "");
+    manager.startScanning("test-service", "test-device");
     EXPECT_TRUE(manager.isScanning());
     
     EXPECT_TRUE(manager.stopScanning());
@@ -46,15 +46,15 @@ TEST_F(PassByManagerTest, StopScanning) {
 
 TEST_F(PassByManagerTest, StartScanningTwice) {
     auto& manager = PassBy::PassByManager::getInstance();
-    EXPECT_TRUE(manager.startScanning("", ""));
-    EXPECT_FALSE(manager.startScanning("", "")); // Should return false when already scanning
+    EXPECT_TRUE(manager.startScanning("test-service", "test-device"));
+    EXPECT_FALSE(manager.startScanning("test-service", "test-device")); // Should return false when already scanning
     EXPECT_TRUE(manager.isScanning());
     manager.stopScanning(); // cleanup
 }
 
 TEST_F(PassByManagerTest, StopScanningTwice) {
     auto& manager = PassBy::PassByManager::getInstance();
-    manager.startScanning("", "");
+    manager.startScanning("test-service", "test-device");
     EXPECT_TRUE(manager.stopScanning());
     EXPECT_FALSE(manager.stopScanning()); // Should return false when not scanning
     EXPECT_FALSE(manager.isScanning());
@@ -83,13 +83,13 @@ TEST_F(PassByManagerTest, DeviceDiscoveryViaBridge) {
     });
     
     // Simulate device discovery via bridge
-    PassBy::PassByBridge::onDeviceDiscovered("test-uuid-1");
-    PassBy::PassByBridge::onDeviceDiscovered("test-uuid-2");
+    PassBy::PassByBridge::onDeviceDiscovered("hash-1");
+    PassBy::PassByBridge::onDeviceDiscovered("hash-2");
     
     // Check callback was called
     EXPECT_EQ(discoveredDevices.size(), 2);
-    EXPECT_EQ(discoveredDevices[0].uuid, "test-uuid-1");
-    EXPECT_EQ(discoveredDevices[1].uuid, "test-uuid-2");
+    EXPECT_EQ(discoveredDevices[0].deviceHash, "hash-1");
+    EXPECT_EQ(discoveredDevices[1].deviceHash, "hash-2");
     
     // Cleanup
     manager.clearDiscoveredDevices();
@@ -108,14 +108,12 @@ TEST_F(PassByManagerTest, DeviceDiscoveryWithHash) {
     });
     
     // Simulate device discovery via bridge with hash
-    PassBy::PassByBridge::onDeviceDiscovered("test-uuid-1", "abcdef1234567890");
-    PassBy::PassByBridge::onDeviceDiscovered("test-uuid-2", "1234567890abcdef");
+    PassBy::PassByBridge::onDeviceDiscovered("abcdef1234567890");
+    PassBy::PassByBridge::onDeviceDiscovered("1234567890abcdef");
     
     // Check callback was called
     EXPECT_EQ(discoveredDevices.size(), 2);
-    EXPECT_EQ(discoveredDevices[0].uuid, "test-uuid-1");
     EXPECT_EQ(discoveredDevices[0].deviceHash, "abcdef1234567890");
-    EXPECT_EQ(discoveredDevices[1].uuid, "test-uuid-2");
     EXPECT_EQ(discoveredDevices[1].deviceHash, "1234567890abcdef");
     
     // Cleanup
@@ -207,7 +205,7 @@ TEST_F(PassByManagerTest, ScanningWithoutServiceUUID) {
     auto& manager = PassBy::PassByManager::getInstance();
     
     // Start scanning without service UUID (empty string)
-    EXPECT_TRUE(manager.startScanning("", ""));
+    EXPECT_TRUE(manager.startScanning("", "test-device"));
     EXPECT_TRUE(manager.getCurrentServiceUUID().empty());
     EXPECT_TRUE(manager.isScanning());
     

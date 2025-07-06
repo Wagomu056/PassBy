@@ -13,7 +13,7 @@ public:
     static void setManager(PassByManager* manager);
     
     // Called by platform-specific code when device is discovered
-    static void onDeviceDiscovered(const std::string& uuid, const std::string& deviceHash = "");
+    static void onDeviceDiscovered(const std::string& deviceHash);
     
     // Get current manager (for testing purposes)
     static PassByManager* getManager();

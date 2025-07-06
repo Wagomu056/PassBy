@@ -97,19 +97,14 @@ const std::string& PassByManager::getCurrentServiceUUID() const {
     return m_currentServiceUUID;
 }
 
-void PassByManager::onDeviceDiscovered(const std::string& uuid, const std::string& deviceHash) {
-    // Store device in memory
-    m_discoveredDevices.insert(uuid);
+void PassByManager::onDeviceDiscovered(const std::string& deviceHash) {
+    // Store device hash in memory
+    m_discoveredDevices.insert(deviceHash);
     
     // Call user callback if set
     if (m_deviceCallback) {
-        if (deviceHash.empty()) {
-            DeviceInfo device(uuid);
-            m_deviceCallback(device);
-        } else {
-            DeviceInfo device(uuid, deviceHash);
-            m_deviceCallback(device);
-        }
+        DeviceInfo device(deviceHash);
+        m_deviceCallback(device);
     }
 }
 
