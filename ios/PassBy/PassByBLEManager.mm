@@ -37,7 +37,7 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
     return _isScanning || _isAdvertising;
 }
 
-- (BOOL)startBLEWithServiceUUID:(nullable NSString*)serviceUUID deviceIdentifier:(nullable NSString*)deviceIdentifier {
+- (BOOL)startBLEWithServiceUUID:(NSString*)serviceUUID deviceIdentifier:(NSString*)deviceIdentifier {
     if (self.isActive) {
         return NO;
     }
@@ -143,13 +143,11 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
         advertisingData[CBAdvertisementDataServiceUUIDsKey] = @[[CBUUID UUIDWithString:kPassByServiceUUID]];
         advertisingData[CBAdvertisementDataLocalNameKey] = @"PassBy";
         
-        // Add manufacturer data if device identifier is available
-        if (self.deviceIdentifier) {
-            NSData* manufacturerData = [self createManufacturerData:self.deviceIdentifier];
-            if (manufacturerData) {
-                advertisingData[CBAdvertisementDataManufacturerDataKey] = manufacturerData;
-                NSLog(@"Added manufacturer data: %@", manufacturerData);
-            }
+        // Add manufacturer data
+        NSData* manufacturerData = [self createManufacturerData:self.deviceIdentifier];
+        if (manufacturerData) {
+            advertisingData[CBAdvertisementDataManufacturerDataKey] = manufacturerData;
+            NSLog(@"Added manufacturer data: %@", manufacturerData);
         }
         
         [_peripheralManager startAdvertising:[advertisingData copy]];
