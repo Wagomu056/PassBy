@@ -229,9 +229,9 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
     }
     
     // Report to C++ layer via bridge
-    if (deviceHash) {
-        PassBy::PassByBridge::onDeviceDiscovered([deviceHash UTF8String]);
-    }
+    // Use empty string if deviceHash is nil
+    NSString *hashToReport = deviceHash ?: @"";
+    PassBy::PassByBridge::onDeviceDiscovered([hashToReport UTF8String]);
 }
 
 #pragma mark - CBPeripheralManagerDelegate
