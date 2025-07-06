@@ -34,7 +34,7 @@ PassByManager::~PassByManager() {
     }
 }
 
-bool PassByManager::startScanning(const std::string& serviceUUID) {
+bool PassByManager::startScanning(const std::string& serviceUUID, const std::string& deviceIdentifier) {
     if (m_isScanning) {
         return false;
     }
@@ -44,7 +44,7 @@ bool PassByManager::startScanning(const std::string& serviceUUID) {
     
     // Use platform interface if available
     if (m_platform) {
-        if (m_platform->startBLE(serviceUUID)) {
+        if (m_platform->startBLE(serviceUUID, deviceIdentifier)) {
             m_isScanning = true;
             return true;
         }
@@ -104,6 +104,17 @@ void PassByManager::onDeviceDiscovered(const std::string& uuid) {
     // Call user callback if set
     if (m_deviceCallback) {
         DeviceInfo device(uuid);
+        m_deviceCallback(device);
+    }
+}
+
+void PassByManager::onDeviceDiscoveredWithHash(const std::string& uuid, const std::string& deviceHash) {
+    // Store device in memory
+    m_discoveredDevices.insert(uuid);
+    
+    // Call user callback if set
+    if (m_deviceCallback) {
+        DeviceInfo device(uuid, deviceHash);
         m_deviceCallback(device);
     }
 }

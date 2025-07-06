@@ -14,14 +14,15 @@ iOSPlatform::~iOSPlatform() {
     }
 }
 
-bool iOSPlatform::startBLE(const std::string& serviceUUID) {
+bool iOSPlatform::startBLE(const std::string& serviceUUID, const std::string& deviceIdentifier) {
     if (!m_bleManager) {
         return false;
     }
     
     NSString* nsServiceUUID = serviceUUID.empty() ? nil : [NSString stringWithUTF8String:serviceUUID.c_str()];
-    NSLog(@"Starting BLE with service UUID: %@", nsServiceUUID);
-    return [m_bleManager startBLEWithServiceUUID:nsServiceUUID];
+    NSString* nsDeviceIdentifier = deviceIdentifier.empty() ? nil : [NSString stringWithUTF8String:deviceIdentifier.c_str()];
+    NSLog(@"Starting BLE with service UUID: %@, device identifier: %@", nsServiceUUID, nsDeviceIdentifier);
+    return [m_bleManager startBLEWithServiceUUID:nsServiceUUID deviceIdentifier:nsDeviceIdentifier];
 }
 
 bool iOSPlatform::stopBLE() {

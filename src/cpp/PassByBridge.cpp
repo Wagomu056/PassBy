@@ -15,6 +15,12 @@ void PassByBridge::onDeviceDiscovered(const std::string& uuid) {
     }
 }
 
+void PassByBridge::onDeviceDiscoveredWithHash(const std::string& uuid, const std::string& deviceHash) {
+    if (s_manager) {
+        s_manager->onDeviceDiscoveredWithHash(uuid, deviceHash);
+    }
+}
+
 PassByManager* PassByBridge::getManager() {
     return s_manager;
 }

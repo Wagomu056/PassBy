@@ -20,8 +20,8 @@ public:
     // No public constructors
     ~PassByManager();
     
-    // Start BLE scanning with optional service UUID filter
-    bool startScanning(const std::string& serviceUUID = "");
+    // Start BLE scanning with optional service UUID filter and device identifier
+    bool startScanning(const std::string& serviceUUID = "", const std::string& deviceIdentifier = "");
     
     // Stop BLE scanning  
     bool stopScanning();
@@ -46,6 +46,9 @@ public:
 
     // Called by platform-specific code when device is discovered
     void onDeviceDiscovered(const std::string& uuid);
+    
+    // Called by platform-specific code when device is discovered with hash
+    void onDeviceDiscoveredWithHash(const std::string& uuid, const std::string& deviceHash);
 
 #ifdef PASSBY_TESTING_ENABLED
 protected:  // テストビルド時のみprotected

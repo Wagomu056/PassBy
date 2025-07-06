@@ -13,6 +13,7 @@
 @interface ViewController ()
 @property (nonatomic, strong) UILabel *statusLabel;
 @property (nonatomic, strong) UITextField *serviceUUIDTextField;
+@property (nonatomic, strong) UITextField *deviceIdentifierTextField;
 @property (nonatomic, strong) UIButton *startButton;
 @property (nonatomic, strong) UIButton *stopButton;
 @property (nonatomic, strong) UIButton *getDevicesButton;
@@ -53,11 +54,23 @@
     self.serviceUUIDTextField.text = @"12345678-1234-1234-1234-123456789ABC";
     self.serviceUUIDTextField.borderStyle = UITextBorderStyleRoundedRect;
     self.serviceUUIDTextField.delegate = self;
-    self.serviceUUIDTextField.returnKeyType = UIReturnKeyDone;
+    self.serviceUUIDTextField.returnKeyType = UIReturnKeyNext;
     self.serviceUUIDTextField.autocapitalizationType = UITextAutocapitalizationTypeNone;
     self.serviceUUIDTextField.autocorrectionType = UITextAutocorrectionTypeNo;
     self.serviceUUIDTextField.translatesAutoresizingMaskIntoConstraints = NO;
     [self.view addSubview:self.serviceUUIDTextField];
+    
+    // Device Identifier text field
+    self.deviceIdentifierTextField = [[UITextField alloc] init];
+    self.deviceIdentifierTextField.placeholder = @"Device Identifier (for advertising)";
+    self.deviceIdentifierTextField.text = @"iPhone-Takuya";
+    self.deviceIdentifierTextField.borderStyle = UITextBorderStyleRoundedRect;
+    self.deviceIdentifierTextField.delegate = self;
+    self.deviceIdentifierTextField.returnKeyType = UIReturnKeyDone;
+    self.deviceIdentifierTextField.autocapitalizationType = UITextAutocapitalizationTypeNone;
+    self.deviceIdentifierTextField.autocorrectionType = UITextAutocorrectionTypeNo;
+    self.deviceIdentifierTextField.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.deviceIdentifierTextField];
     
     // Start button
     self.startButton = [UIButton buttonWithType:UIButtonTypeSystem];
@@ -99,7 +112,11 @@
         [self.serviceUUIDTextField.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
         [self.serviceUUIDTextField.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
         
-        [self.startButton.topAnchor constraintEqualToAnchor:self.serviceUUIDTextField.bottomAnchor constant:20],
+        [self.deviceIdentifierTextField.topAnchor constraintEqualToAnchor:self.serviceUUIDTextField.bottomAnchor constant:10],
+        [self.deviceIdentifierTextField.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
+        [self.deviceIdentifierTextField.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
+        
+        [self.startButton.topAnchor constraintEqualToAnchor:self.deviceIdentifierTextField.bottomAnchor constant:20],
         [self.startButton.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
         [self.startButton.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
         
@@ -189,14 +206,21 @@
         serviceUUIDString = std::string([serviceUUID UTF8String]);
     }
     
-    // Start scanning with service UUID
-    if (_passbyManager->startScanning(serviceUUIDString)) {
+    // Get device identifier from text field
+    NSString *deviceIdentifier = self.deviceIdentifierTextField.text;
+    std::string deviceIdentifierString = "";
+    if (deviceIdentifier && deviceIdentifier.length > 0) {
+        deviceIdentifierString = std::string([deviceIdentifier UTF8String]);
+    }
+    
+    // Start scanning with service UUID and device identifier
+    if (_passbyManager->startScanning(serviceUUIDString, deviceIdentifierString)) {
         if (serviceUUID && serviceUUID.length > 0) {
             self.statusLabel.text = [NSString stringWithFormat:@"PassBy Status: Scanning for %@", serviceUUID];
-            NSLog(@"[sample] Started BLE scanning for service: %@", serviceUUID);
+            NSLog(@"[sample] Started BLE scanning for service: %@ with device ID: %@", serviceUUID, deviceIdentifier);
         } else {
             self.statusLabel.text = @"PassBy Status: Scanning all devices";
-            NSLog(@"[sample] Started BLE scanning for all devices");
+            NSLog(@"[sample] Started BLE scanning for all devices with device ID: %@", deviceIdentifier);
         }
     } else {
         NSLog(@"[sample] Failed to start BLE scanning");
@@ -249,17 +273,35 @@
         }
     }
     
+    // Safe device hash conversion
+    NSString *deviceHash = @"";
+    if (!device.deviceHash.empty()) {
+        const char* hashCString = device.deviceHash.c_str();
+        if (hashCString && strlen(hashCString) > 0) {
+            deviceHash = [NSString stringWithUTF8String:hashCString];
+        }
+    }
+    
     NSString *timestamp = [_dateFormatter stringFromDate:[NSDate date]];
     NSString *appState = [[UIApplication sharedApplication] applicationState] == UIApplicationStateBackground ? @"Background" : @"Foreground";
     
-    NSString *logEntry = [NSString stringWithFormat:@"[%@] %@: %@", timestamp, appState, deviceUUID];
+    NSString *logEntry;
+    if (deviceHash.length > 0) {
+        logEntry = [NSString stringWithFormat:@"[%@] %@: %@ (Hash: %@)", timestamp, appState, deviceUUID, deviceHash];
+    } else {
+        logEntry = [NSString stringWithFormat:@"[%@] %@: %@", timestamp, appState, deviceUUID];
+    }
     [_backgroundLog addObject:logEntry];
     
     dispatch_async(dispatch_get_main_queue(), ^{
         [self updateBackgroundLogDisplay];
     });
     
-    NSLog(@"[sample] Device discovered (%@): %@", appState, deviceUUID);
+    if (deviceHash.length > 0) {
+        NSLog(@"[sample] Device discovered (%@): %@ (Hash: %@)", appState, deviceUUID, deviceHash);
+    } else {
+        NSLog(@"[sample] Device discovered (%@): %@", appState, deviceUUID);
+    }
 }
 
 - (void)clearLogButtonTapped {
@@ -323,7 +365,11 @@
 #pragma mark - UITextFieldDelegate
 
 - (BOOL)textFieldShouldReturn:(UITextField *)textField {
-    [textField resignFirstResponder];
+    if (textField == self.serviceUUIDTextField) {
+        [self.deviceIdentifierTextField becomeFirstResponder];
+    } else {
+        [textField resignFirstResponder];
+    }
     return YES;
 }
 

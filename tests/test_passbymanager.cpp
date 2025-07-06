@@ -28,6 +28,13 @@ TEST_F(PassByManagerTest, StartScanning) {
     manager.stopScanning(); // cleanup
 }
 
+TEST_F(PassByManagerTest, StartScanningWithDeviceIdentifier) {
+    auto& manager = PassBy::PassByManager::getInstance();
+    EXPECT_TRUE(manager.startScanning("", "test-device-id"));
+    EXPECT_TRUE(manager.isScanning());
+    manager.stopScanning(); // cleanup
+}
+
 TEST_F(PassByManagerTest, StopScanning) {
     auto& manager = PassBy::PassByManager::getInstance();
     manager.startScanning();
@@ -83,6 +90,33 @@ TEST_F(PassByManagerTest, DeviceDiscoveryViaBridge) {
     EXPECT_EQ(discoveredDevices.size(), 2);
     EXPECT_EQ(discoveredDevices[0].uuid, "test-uuid-1");
     EXPECT_EQ(discoveredDevices[1].uuid, "test-uuid-2");
+    
+    // Cleanup
+    manager.clearDiscoveredDevices();
+}
+
+TEST_F(PassByManagerTest, DeviceDiscoveryWithHash) {
+    auto& manager = PassBy::PassByManager::getInstance();
+    
+    // Clear any existing devices
+    manager.clearDiscoveredDevices();
+    
+    // Test device discovery callback with hash
+    std::vector<PassBy::DeviceInfo> discoveredDevices;
+    manager.setDeviceDiscoveredCallback([&discoveredDevices](const PassBy::DeviceInfo& device) {
+        discoveredDevices.push_back(device);
+    });
+    
+    // Simulate device discovery via bridge with hash
+    PassBy::PassByBridge::onDeviceDiscoveredWithHash("test-uuid-1", "abcdef1234567890");
+    PassBy::PassByBridge::onDeviceDiscoveredWithHash("test-uuid-2", "1234567890abcdef");
+    
+    // Check callback was called
+    EXPECT_EQ(discoveredDevices.size(), 2);
+    EXPECT_EQ(discoveredDevices[0].uuid, "test-uuid-1");
+    EXPECT_EQ(discoveredDevices[0].deviceHash, "abcdef1234567890");
+    EXPECT_EQ(discoveredDevices[1].uuid, "test-uuid-2");
+    EXPECT_EQ(discoveredDevices[1].deviceHash, "1234567890abcdef");
     
     // Cleanup
     manager.clearDiscoveredDevices();
@@ -159,7 +193,7 @@ TEST_F(PassByManagerTest, ServiceUUIDHandling) {
     EXPECT_TRUE(manager.getCurrentServiceUUID().empty());
     
     // Start scanning with service UUID
-    EXPECT_TRUE(manager.startScanning("test-service-uuid"));
+    EXPECT_TRUE(manager.startScanning("test-service-uuid", "test-device-id"));
     EXPECT_EQ(manager.getCurrentServiceUUID(), "test-service-uuid");
     EXPECT_TRUE(manager.isScanning());
     
@@ -186,7 +220,7 @@ TEST_F(PassByManagerTest, ServiceUUIDChangeBetweenScans) {
     auto& manager = PassBy::PassByManager::getInstance();
     
     // First scan with UUID1
-    EXPECT_TRUE(manager.startScanning("uuid-1"));
+    EXPECT_TRUE(manager.startScanning("uuid-1", "device-1"));
     EXPECT_EQ(manager.getCurrentServiceUUID(), "uuid-1");
     
     // Stop scanning
@@ -194,7 +228,7 @@ TEST_F(PassByManagerTest, ServiceUUIDChangeBetweenScans) {
     EXPECT_TRUE(manager.getCurrentServiceUUID().empty());
     
     // Start new scan with UUID2
-    EXPECT_TRUE(manager.startScanning("uuid-2"));
+    EXPECT_TRUE(manager.startScanning("uuid-2", "device-2"));
     EXPECT_EQ(manager.getCurrentServiceUUID(), "uuid-2");
     
     // Cleanup

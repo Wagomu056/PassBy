@@ -15,6 +15,9 @@ public:
     // Called by platform-specific code when device is discovered
     static void onDeviceDiscovered(const std::string& uuid);
     
+    // Called by platform-specific code when device is discovered with hash
+    static void onDeviceDiscoveredWithHash(const std::string& uuid, const std::string& deviceHash);
+    
     // Get current manager (for testing purposes)
     static PassByManager* getManager();
 

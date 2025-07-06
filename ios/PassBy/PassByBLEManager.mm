@@ -1,9 +1,13 @@
 #import "PassByBLEManager.h"
 #include "../../src/internal/PassByBridge.h"
+#import <CommonCrypto/CommonCrypto.h>
 
 // UUID for PassBy service and characteristic
 static NSString * const kPassByServiceUUID = @"12345678-1234-1234-1234-123456789ABC";
 static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CBA987654321";
+
+// Company identifier for manufacturer data (using Apple's for development)
+static const uint16_t kPassByCompanyIdentifier = 0x004C;
 
 @interface PassByBLEManager ()
 
@@ -14,6 +18,7 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
 @property (nonatomic, assign) BOOL isScanning;
 @property (nonatomic, assign) BOOL isAdvertising;
 @property (nonatomic, strong) NSString *pendingServiceUUID;
+@property (nonatomic, strong) NSString *deviceIdentifier;
 
 @end
 
@@ -34,10 +39,13 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
     return _isScanning || _isAdvertising;
 }
 
-- (BOOL)startBLEWithServiceUUID:(nullable NSString*)serviceUUID {
+- (BOOL)startBLEWithServiceUUID:(nullable NSString*)serviceUUID deviceIdentifier:(nullable NSString*)deviceIdentifier {
     if (self.isActive) {
         return NO;
     }
+    
+    // Store device identifier for advertising
+    self.deviceIdentifier = deviceIdentifier;
     
     [self startScanningWithServiceUUID:serviceUUID];
     [self startAdvertising];
@@ -57,6 +65,63 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
 }
 
 #pragma mark - Private Methods
+
+- (NSData*)hashDeviceIdentifier:(NSString*)deviceIdentifier {
+    if (!deviceIdentifier || deviceIdentifier.length == 0) {
+        return nil;
+    }
+    
+    const char* input = [deviceIdentifier UTF8String];
+    unsigned char hash[CC_SHA256_DIGEST_LENGTH];
+    
+    // Generate SHA-256 hash
+    CC_SHA256(input, (CC_LONG)strlen(input), hash);
+    
+    // Return first 8 bytes for manufacturer data
+    return [NSData dataWithBytes:hash length:8];
+}
+
+- (NSData*)createManufacturerData:(NSString*)deviceIdentifier {
+    NSMutableData* manufacturerData = [NSMutableData data];
+    
+    // Add company identifier (little-endian)
+    uint16_t companyId = CFSwapInt16HostToLittle(kPassByCompanyIdentifier);
+    [manufacturerData appendBytes:&companyId length:sizeof(companyId)];
+    
+    // Add device hash if available
+    NSData* deviceHash = [self hashDeviceIdentifier:deviceIdentifier];
+    if (deviceHash) {
+        [manufacturerData appendData:deviceHash];
+    }
+    
+    return [manufacturerData copy];
+}
+
+- (NSString*)extractDeviceHashFromManufacturerData:(NSData*)manufacturerData {
+    if (!manufacturerData || manufacturerData.length < 10) {
+        return nil;
+    }
+    
+    const uint8_t* bytes = (const uint8_t*)manufacturerData.bytes;
+    
+    // Check company identifier (first 2 bytes, little-endian)
+    uint16_t companyId = CFSwapInt16LittleToHost(*(uint16_t*)bytes);
+    if (companyId != kPassByCompanyIdentifier) {
+        return nil;
+    }
+    
+    // Extract device hash (next 8 bytes)
+    NSData* hashData = [NSData dataWithBytes:bytes + 2 length:8];
+    
+    // Convert to hex string
+    NSMutableString* hashString = [NSMutableString string];
+    const uint8_t* hashBytes = (const uint8_t*)hashData.bytes;
+    for (int i = 0; i < 8; i++) {
+        [hashString appendFormat:@"%02x", hashBytes[i]];
+    }
+    
+    return [hashString copy];
+}
 
 - (void)startScanningWithServiceUUID:(nullable NSString*)serviceUUID {
     if (!_isScanning) {
@@ -97,15 +162,23 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
         // Setup service and characteristic
         [self setupPeripheralService];
         
-        // Start advertising
-        NSDictionary *advertisingData = @{
-            CBAdvertisementDataServiceUUIDsKey: @[[CBUUID UUIDWithString:kPassByServiceUUID]],
-            CBAdvertisementDataLocalNameKey: @"PassBy"
-        };
+        // Create advertising data
+        NSMutableDictionary *advertisingData = [NSMutableDictionary dictionary];
+        advertisingData[CBAdvertisementDataServiceUUIDsKey] = @[[CBUUID UUIDWithString:kPassByServiceUUID]];
+        advertisingData[CBAdvertisementDataLocalNameKey] = @"PassBy";
         
-        [_peripheralManager startAdvertising:advertisingData];
+        // Add manufacturer data if device identifier is available
+        if (self.deviceIdentifier) {
+            NSData* manufacturerData = [self createManufacturerData:self.deviceIdentifier];
+            if (manufacturerData) {
+                advertisingData[CBAdvertisementDataManufacturerDataKey] = manufacturerData;
+                NSLog(@"Added manufacturer data: %@", manufacturerData);
+            }
+        }
+        
+        [_peripheralManager startAdvertising:[advertisingData copy]];
         _isAdvertising = YES;
-        NSLog(@"Started BLE advertising");
+        NSLog(@"Started BLE advertising with device identifier: %@", self.deviceIdentifier);
     }
 }
 
@@ -167,10 +240,26 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
     NSString *deviceUUID = peripheral.identifier.UUIDString;
     NSString *deviceName = peripheral.name ?: @"Unknown";
     
-    NSLog(@"Discovered device: %@ (Name: %@, RSSI: %@)", deviceUUID, deviceName, RSSI);
+    // Extract device hash from manufacturer data
+    NSString *deviceHash = nil;
+    NSData *manufacturerData = advertisementData[CBAdvertisementDataManufacturerDataKey];
+    if (manufacturerData) {
+        deviceHash = [self extractDeviceHashFromManufacturerData:manufacturerData];
+        if (deviceHash) {
+            NSLog(@"Discovered device: %@ (Name: %@, RSSI: %@, Hash: %@)", deviceUUID, deviceName, RSSI, deviceHash);
+        } else {
+            NSLog(@"Discovered device: %@ (Name: %@, RSSI: %@, Invalid manufacturer data)", deviceUUID, deviceName, RSSI);
+        }
+    } else {
+        NSLog(@"Discovered device: %@ (Name: %@, RSSI: %@, No manufacturer data)", deviceUUID, deviceName, RSSI);
+    }
     
     // Report to C++ layer via bridge
-    PassBy::PassByBridge::onDeviceDiscovered([deviceUUID UTF8String]);
+    if (deviceHash) {
+        PassBy::PassByBridge::onDeviceDiscoveredWithHash([deviceUUID UTF8String], [deviceHash UTF8String]);
+    } else {
+        PassBy::PassByBridge::onDeviceDiscovered([deviceUUID UTF8String]);
+    }
 }
 
 #pragma mark - CBPeripheralManagerDelegate
