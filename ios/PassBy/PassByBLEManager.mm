@@ -166,11 +166,13 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
     // Generate a simple UUID for the discovered device
     NSString *deviceUUID = peripheral.identifier.UUIDString;
     NSString *deviceName = peripheral.name ?: @"Unknown";
+    NSString *localName = advertisementData[CBAdvertisementDataLocalNameKey] ?: @"Unknown";
     
-    NSLog(@"Discovered device: %@ (Name: %@, RSSI: %@)", deviceUUID, deviceName, RSSI);
+    NSLog(@"Discovered device: %@ (Name: %@, RSSI: %@, Local Name: %@)",
+          deviceUUID, deviceName, RSSI, localName);
     
     // Report to C++ layer via bridge
-    PassBy::PassByBridge::onDeviceDiscovered([deviceUUID UTF8String]);
+    PassBy::PassByBridge::onDeviceDiscovered([localName UTF8String]);
 }
 
 #pragma mark - CBPeripheralManagerDelegate
