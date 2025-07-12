@@ -15,6 +15,12 @@ void PassByBridge::onDeviceDiscovered(const std::string& uuid) {
     }
 }
 
+void PassByBridge::onAdvertisingStarted(const std::string& peripheralUUID, bool success, const std::string& errorMessage) {
+    if (s_manager) {
+        s_manager->onAdvertisingStarted(peripheralUUID, success, errorMessage);
+    }
+}
+
 PassByManager* PassByBridge::getManager() {
     return s_manager;
 }

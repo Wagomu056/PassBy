@@ -15,6 +15,9 @@ public:
     // Called by platform-specific code when device is discovered
     static void onDeviceDiscovered(const std::string& uuid);
     
+    // Called by platform-specific code when advertising is started
+    static void onAdvertisingStarted(const std::string& peripheralUUID, bool success, const std::string& errorMessage = "");
+    
     // Get current manager (for testing purposes)
     static PassByManager* getManager();
 
