@@ -1,9 +1,10 @@
 #import "PassByBLEManager.h"
 #include "../../src/internal/PassByBridge.h"
 
-// UUID for PassBy service and characteristic
+// UUID for PassBy service and characteristics
 static NSString * const kPassByServiceUUID = @"12345678-1234-1234-1234-123456789ABC";
 static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CBA987654321";
+static NSString * const kPassByDeviceIdentifierUUID = @"11111111-2222-3333-4444-555555555555";
 
 @interface PassByBLEManager ()
 
@@ -11,13 +12,38 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
 @property (nonatomic, strong) CBPeripheralManager *peripheralManager;
 @property (nonatomic, strong) CBMutableService *passByService;
 @property (nonatomic, strong) CBMutableCharacteristic *passByCharacteristic;
+@property (nonatomic, strong) CBMutableCharacteristic *deviceIdentifierCharacteristic;
 @property (nonatomic, assign) BOOL isScanning;
 @property (nonatomic, assign) BOOL isAdvertising;
 @property (nonatomic, strong) NSString *pendingServiceUUID;
+// Custom property implemented manually
+@property (nonatomic, strong) NSMutableSet<CBPeripheral*> *connectingPeripherals;
 
 @end
 
-@implementation PassByBLEManager
+@implementation PassByBLEManager {
+    NSString *_internalDeviceIdentifier;
+}
+
+// Custom setter for validation
+- (void)setDeviceIdentifier:(NSString *)deviceIdentifier {
+    if ([deviceIdentifier isKindOfClass:[NSString class]]) {
+        _internalDeviceIdentifier = [deviceIdentifier copy];
+        NSLog(@"Device identifier set to: %@ (type: %@)", _internalDeviceIdentifier, [_internalDeviceIdentifier class]);
+    } else {
+        NSLog(@"ERROR: Attempted to set deviceIdentifier to non-string object: %@ (type: %@)", deviceIdentifier, [deviceIdentifier class]);
+        _internalDeviceIdentifier = [[NSUUID UUID] UUIDString];
+        NSLog(@"Created fallback identifier: %@", _internalDeviceIdentifier);
+    }
+}
+
+- (NSString *)deviceIdentifier {
+    if (![_internalDeviceIdentifier isKindOfClass:[NSString class]]) {
+        NSLog(@"ERROR: Internal device identifier corrupted (type: %@), creating new one", [_internalDeviceIdentifier class]);
+        _internalDeviceIdentifier = [[NSUUID UUID] UUIDString];
+    }
+    return _internalDeviceIdentifier;
+}
 
 - (instancetype)init {
     self = [super init];
@@ -26,6 +52,13 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
         _peripheralManager = [[CBPeripheralManager alloc] initWithDelegate:self queue:nil];
         _isScanning = NO;
         _isAdvertising = NO;
+        
+        // Generate fixed device identifier for this app session
+        NSString *newUUID = [[NSUUID UUID] UUIDString];
+        self.deviceIdentifier = newUUID;  // Use setter for validation
+        _connectingPeripherals = [[NSMutableSet alloc] init];
+        
+        NSLog(@"PassByBLEManager initialized with device identifier: %@ (type: %@)", self.deviceIdentifier, [self.deviceIdentifier class]);
     }
     return self;
 }
@@ -118,19 +151,31 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
 }
 
 - (void)setupPeripheralService {
-    // Create characteristic
+    // Create original PassBy characteristic
     _passByCharacteristic = [[CBMutableCharacteristic alloc]
                            initWithType:[CBUUID UUIDWithString:kPassByCharacteristicUUID]
                            properties:CBCharacteristicPropertyRead
                            value:nil
                            permissions:CBAttributePermissionsReadable];
     
-    // Create service
+    // Create device identifier characteristic using getter for validation
+    NSLog(@"setupPeripheralService called");
+    NSString *identifierString = self.deviceIdentifier;  // Use getter for validation
+    NSLog(@"Using device identifier: %@", identifierString);
+    
+    NSData *identifierData = [identifierString dataUsingEncoding:NSUTF8StringEncoding];
+    _deviceIdentifierCharacteristic = [[CBMutableCharacteristic alloc]
+                                     initWithType:[CBUUID UUIDWithString:kPassByDeviceIdentifierUUID]
+                                     properties:CBCharacteristicPropertyRead
+                                     value:identifierData
+                                     permissions:CBAttributePermissionsReadable];
+    
+    // Create service with both characteristics
     _passByService = [[CBMutableService alloc]
                      initWithType:[CBUUID UUIDWithString:kPassByServiceUUID]
                      primary:YES];
     
-    _passByService.characteristics = @[_passByCharacteristic];
+    _passByService.characteristics = @[_passByCharacteristic, _deviceIdentifierCharacteristic];
     
     // Add service to peripheral manager
     [_peripheralManager addService:_passByService];
@@ -163,14 +208,20 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
      advertisementData:(NSDictionary<NSString *,id> *)advertisementData
                   RSSI:(NSNumber *)RSSI {
     
-    // Generate a simple UUID for the discovered device
     NSString *deviceUUID = peripheral.identifier.UUIDString;
     NSString *deviceName = peripheral.name ?: @"Unknown";
     
     NSLog(@"Discovered device: %@ (Name: %@, RSSI: %@)", deviceUUID, deviceName, RSSI);
     
-    // Report to C++ layer via bridge
-    PassBy::PassByBridge::onDeviceDiscovered([deviceUUID UTF8String]);
+    NSLog(@"Advertisement Data: %@", advertisementData);
+    if (![_connectingPeripherals containsObject:peripheral]) {
+        NSLog(@"Connecting to PassBy device: %@", deviceUUID);
+        [_connectingPeripherals addObject:peripheral];
+        peripheral.delegate = self;
+        [_centralManager connectPeripheral:peripheral options:nil];
+    } else {
+        NSLog(@"Already connecting to device: %@", deviceUUID);
+    }
 }
 
 #pragma mark - CBPeripheralManagerDelegate
@@ -204,8 +255,101 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
     if (error) {
         NSLog(@"Error starting advertising: %@", error.localizedDescription);
         _isAdvertising = NO;
+        
+        // Notify failure via bridge
+        std::string errorMessage = std::string([error.localizedDescription UTF8String]);
+        PassBy::PassByBridge::onAdvertisingStarted("", false, errorMessage);
     } else {
-        NSLog(@"Started advertising successfully");
+        NSLog(@"Started advertising successfully with device identifier: %@", self.deviceIdentifier);
+        
+        // Notify success with fixed device identifier via bridge using getter
+        NSString *identifierString = self.deviceIdentifier;  // Use getter for validation
+        std::string deviceIdString = std::string([identifierString UTF8String]);
+        PassBy::PassByBridge::onAdvertisingStarted(deviceIdString, true);
+    }
+}
+
+#pragma mark - CBPeripheralDelegate
+
+- (void)centralManager:(CBCentralManager *)central didConnectPeripheral:(CBPeripheral *)peripheral {
+    NSLog(@"Connected to peripheral: %@", peripheral.identifier.UUIDString);
+    [peripheral discoverServices:@[[CBUUID UUIDWithString:kPassByServiceUUID]]];
+}
+
+- (void)centralManager:(CBCentralManager *)central didDisconnectPeripheral:(CBPeripheral *)peripheral error:(NSError *)error {
+    NSLog(@"Disconnected from peripheral: %@", peripheral.identifier.UUIDString);
+    [_connectingPeripherals removeObject:peripheral];
+    
+    if (error) {
+        NSLog(@"Disconnection error: %@", error.localizedDescription);
+    }
+}
+
+- (void)centralManager:(CBCentralManager *)central didFailToConnectPeripheral:(CBPeripheral *)peripheral error:(NSError *)error {
+    NSLog(@"Failed to connect to peripheral: %@ with error: %@", peripheral.identifier.UUIDString, error.localizedDescription);
+    [_connectingPeripherals removeObject:peripheral];
+}
+
+- (void)peripheral:(CBPeripheral *)peripheral didDiscoverServices:(NSError *)error {
+    if (error) {
+        NSLog(@"Error discovering services: %@", error.localizedDescription);
+        [_centralManager cancelPeripheralConnection:peripheral];
+        return;
+    }
+    
+    for (CBService *service in peripheral.services) {
+        if ([service.UUID.UUIDString isEqualToString:kPassByServiceUUID]) {
+            NSLog(@"Found PassBy service, discovering characteristics");
+            [peripheral discoverCharacteristics:@[[CBUUID UUIDWithString:kPassByDeviceIdentifierUUID]] 
+                                      forService:service];
+        }
+    }
+}
+
+- (void)peripheral:(CBPeripheral *)peripheral 
+didDiscoverCharacteristicsForService:(CBService *)service 
+             error:(NSError *)error {
+    if (error) {
+        NSLog(@"Error discovering characteristics: %@", error.localizedDescription);
+        [_centralManager cancelPeripheralConnection:peripheral];
+        return;
+    }
+    
+    for (CBCharacteristic *characteristic in service.characteristics) {
+        if ([characteristic.UUID.UUIDString isEqualToString:kPassByDeviceIdentifierUUID]) {
+            NSLog(@"Found device identifier characteristic, reading value");
+            [peripheral readValueForCharacteristic:characteristic];
+        }
+    }
+}
+
+- (void)peripheral:(CBPeripheral *)peripheral 
+didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic 
+             error:(NSError *)error {
+    if (error) {
+        NSLog(@"Error reading characteristic: %@", error.localizedDescription);
+        [_centralManager cancelPeripheralConnection:peripheral];
+        return;
+    }
+    
+    if ([characteristic.UUID.UUIDString isEqualToString:kPassByDeviceIdentifierUUID]) {
+        NSString *deviceIdentifier = [[NSString alloc] initWithData:characteristic.value encoding:NSUTF8StringEncoding];
+        
+        NSLog(@"Retrieved device identifier: %@ from peripheral: %@", deviceIdentifier, peripheral.identifier.UUIDString);
+        
+        // Report to C++ layer via bridge using the custom identifier
+        if (deviceIdentifier && deviceIdentifier.length > 0) {
+            PassBy::PassByBridge::onDeviceDiscovered([deviceIdentifier UTF8String]);
+        } else {
+            // Fallback to system identifier if custom identifier is invalid
+            PassBy::PassByBridge::onDeviceDiscovered([@"invalid-device-UUID" UTF8String]);
+        }
+        
+        // Disconnect to free resources
+        [_centralManager cancelPeripheralConnection:peripheral];
+    }
+    else {
+        NSLog(@"Received update for characteristic: %@, but not the device identifier", characteristic.UUID.UUIDString);
     }
 }
 

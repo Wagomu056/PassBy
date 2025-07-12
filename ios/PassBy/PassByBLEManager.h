@@ -3,7 +3,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface PassByBLEManager : NSObject <CBCentralManagerDelegate, CBPeripheralManagerDelegate>
+@interface PassByBLEManager : NSObject <CBCentralManagerDelegate, CBPeripheralManagerDelegate, CBPeripheralDelegate>
 
 @property (nonatomic, readonly) BOOL isActive;
 
