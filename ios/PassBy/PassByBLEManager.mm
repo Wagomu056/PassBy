@@ -181,6 +181,27 @@ static NSString * const kPassByDeviceIdentifierUUID = @"11111111-2222-3333-4444-
     [_peripheralManager addService:_passByService];
 }
 
+/*
+ * BLE Discovery Flow: From Peripheral Discovery to Characteristic UUID Retrieval
+ * 
+ * The following sequence outlines the complete flow from discovering a peripheral
+ * to obtaining its characteristic UUID values:
+ * 
+ * 1. didDiscoverPeripheral - Peripheral device is discovered during scanning
+ * 2. connectPeripheral - Initiate connection to the discovered peripheral
+ * 3. didConnectPeripheral - Connection established successfully
+ * 4. discoverServices - Begin service discovery on the connected peripheral
+ * 5. didDiscoverServices - Services are discovered and enumerated
+ * 6. discoverCharacteristics - Start characteristic discovery for found services
+ * 7. didDiscoverCharacteristicsForService - Characteristics are discovered
+ * 8. readValueForCharacteristic - Initiate reading of characteristic values
+ * 9. didUpdateValueForCharacteristic - Characteristic value read completed
+ * 10. onDeviceDiscovered - Results reported to C++ layer via PassByBridge
+ * 
+ * This flow ensures proper BLE communication protocol adherence and retrieves
+ * the device identifier from the kPassByDeviceIdentifierUUID characteristic.
+ */
+
 #pragma mark - CBCentralManagerDelegate
 
 - (void)centralManagerDidUpdateState:(CBCentralManager *)central {
