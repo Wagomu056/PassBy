@@ -13,6 +13,7 @@
 @interface ViewController ()
 @property (nonatomic, strong) UILabel *statusLabel;
 @property (nonatomic, strong) UITextField *serviceUUIDTextField;
+@property (nonatomic, strong) UITextField *localNameTextField;
 @property (nonatomic, strong) UIButton *startButton;
 @property (nonatomic, strong) UIButton *stopButton;
 @property (nonatomic, strong) UIButton *getDevicesButton;
@@ -53,11 +54,23 @@
     self.serviceUUIDTextField.text = @"12345678-1234-1234-1234-123456789ABC";
     self.serviceUUIDTextField.borderStyle = UITextBorderStyleRoundedRect;
     self.serviceUUIDTextField.delegate = self;
-    self.serviceUUIDTextField.returnKeyType = UIReturnKeyDone;
+    self.serviceUUIDTextField.returnKeyType = UIReturnKeyNext;
     self.serviceUUIDTextField.autocapitalizationType = UITextAutocapitalizationTypeNone;
     self.serviceUUIDTextField.autocorrectionType = UITextAutocorrectionTypeNo;
     self.serviceUUIDTextField.translatesAutoresizingMaskIntoConstraints = NO;
     [self.view addSubview:self.serviceUUIDTextField];
+    
+    // Local Name text field
+    self.localNameTextField = [[UITextField alloc] init];
+    self.localNameTextField.placeholder = @"Local Name (empty = default PassBy)";
+    self.localNameTextField.text = @"";
+    self.localNameTextField.borderStyle = UITextBorderStyleRoundedRect;
+    self.localNameTextField.delegate = self;
+    self.localNameTextField.returnKeyType = UIReturnKeyDone;
+    self.localNameTextField.autocapitalizationType = UITextAutocapitalizationTypeNone;
+    self.localNameTextField.autocorrectionType = UITextAutocorrectionTypeNo;
+    self.localNameTextField.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.view addSubview:self.localNameTextField];
     
     // Start button
     self.startButton = [UIButton buttonWithType:UIButtonTypeSystem];
@@ -99,7 +112,11 @@
         [self.serviceUUIDTextField.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
         [self.serviceUUIDTextField.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
         
-        [self.startButton.topAnchor constraintEqualToAnchor:self.serviceUUIDTextField.bottomAnchor constant:20],
+        [self.localNameTextField.topAnchor constraintEqualToAnchor:self.serviceUUIDTextField.bottomAnchor constant:10],
+        [self.localNameTextField.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
+        [self.localNameTextField.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
+        
+        [self.startButton.topAnchor constraintEqualToAnchor:self.localNameTextField.bottomAnchor constant:20],
         [self.startButton.leadingAnchor constraintEqualToAnchor:self.view.leadingAnchor constant:20],
         [self.startButton.trailingAnchor constraintEqualToAnchor:self.view.trailingAnchor constant:-20],
         
@@ -189,15 +206,27 @@
         serviceUUIDString = std::string([serviceUUID UTF8String]);
     }
     
-    // Start scanning with service UUID
-    if (_passbyManager->startScanning(serviceUUIDString)) {
+    // Get local name from text field
+    NSString *localName = self.localNameTextField.text;
+    std::string localNameString = "";
+    if (localName && localName.length > 0) {
+        localNameString = std::string([localName UTF8String]);
+    }
+    
+    // Start scanning with service UUID and local name
+    if (_passbyManager->startScanning(serviceUUIDString, localNameString)) {
+        NSString *statusText = @"PassBy Status: Scanning";
         if (serviceUUID && serviceUUID.length > 0) {
-            self.statusLabel.text = [NSString stringWithFormat:@"PassBy Status: Scanning for %@", serviceUUID];
-            NSLog(@"[sample] Started BLE scanning for service: %@", serviceUUID);
+            statusText = [statusText stringByAppendingFormat:@" for %@", serviceUUID];
         } else {
-            self.statusLabel.text = @"PassBy Status: Scanning all devices";
-            NSLog(@"[sample] Started BLE scanning for all devices");
+            statusText = [statusText stringByAppendingString:@" all devices"];
         }
+        if (localName && localName.length > 0) {
+            statusText = [statusText stringByAppendingFormat:@" (advertising as %@)", localName];
+        }
+        
+        self.statusLabel.text = statusText;
+        NSLog(@"[sample] Started BLE scanning for service: %@, local name: %@", serviceUUID ?: @"all", localName ?: @"PassBy");
     } else {
         NSLog(@"[sample] Failed to start BLE scanning");
     }
@@ -323,7 +352,11 @@
 #pragma mark - UITextFieldDelegate
 
 - (BOOL)textFieldShouldReturn:(UITextField *)textField {
-    [textField resignFirstResponder];
+    if (textField == self.serviceUUIDTextField) {
+        [self.localNameTextField becomeFirstResponder];
+    } else {
+        [textField resignFirstResponder];
+    }
     return YES;
 }
 

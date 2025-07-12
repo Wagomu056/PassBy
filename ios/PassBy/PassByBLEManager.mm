@@ -14,6 +14,7 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
 @property (nonatomic, assign) BOOL isScanning;
 @property (nonatomic, assign) BOOL isAdvertising;
 @property (nonatomic, strong) NSString *pendingServiceUUID;
+@property (nonatomic, strong) NSString *pendingLocalName;
 
 @end
 
@@ -34,13 +35,13 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
     return _isScanning || _isAdvertising;
 }
 
-- (BOOL)startBLEWithServiceUUID:(nullable NSString*)serviceUUID {
+- (BOOL)startBLEWithServiceUUID:(nullable NSString*)serviceUUID localName:(nullable NSString*)localName {
     if (self.isActive) {
         return NO;
     }
     
     [self startScanningWithServiceUUID:serviceUUID];
-    [self startAdvertising];
+    [self startAdvertisingWithLocalName:localName];
     
     return YES;
 }
@@ -93,19 +94,31 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
 }
 
 - (void)startAdvertising {
+    [self startAdvertisingWithLocalName:nil];
+}
+
+- (void)startAdvertisingWithLocalName:(nullable NSString*)localName {
     if (_peripheralManager.state == CBManagerStatePoweredOn && !_isAdvertising) {
+        self.pendingLocalName = localName;
+        
         // Setup service and characteristic
         [self setupPeripheralService];
+        
+        // Use provided localName or default to "PassBy"
+        NSString *advertisingName = localName && localName.length > 0 ? localName : @"PassBy";
         
         // Start advertising
         NSDictionary *advertisingData = @{
             CBAdvertisementDataServiceUUIDsKey: @[[CBUUID UUIDWithString:kPassByServiceUUID]],
-            CBAdvertisementDataLocalNameKey: @"PassBy"
+            CBAdvertisementDataLocalNameKey: advertisingName
         };
         
         [_peripheralManager startAdvertising:advertisingData];
         _isAdvertising = YES;
-        NSLog(@"Started BLE advertising");
+        NSLog(@"Started BLE advertising with local name: %@", advertisingName);
+    } else if (_peripheralManager.state != CBManagerStatePoweredOn) {
+        self.pendingLocalName = localName;
+        NSLog(@"Peripheral Manager not ready (state: %ld), will start advertising when powered on", (long)_peripheralManager.state);
     }
 }
 
@@ -182,7 +195,7 @@ static NSString * const kPassByCharacteristicUUID = @"87654321-4321-4321-4321-CB
         case CBManagerStatePoweredOn:
             NSLog(@"Peripheral Manager powered on");
             if (_isAdvertising) {
-                [self startAdvertising];
+                [self startAdvertisingWithLocalName:self.pendingLocalName];
             }
             break;
         case CBManagerStatePoweredOff:

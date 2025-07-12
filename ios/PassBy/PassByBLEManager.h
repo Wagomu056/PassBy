@@ -7,7 +7,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, readonly) BOOL isActive;
 
-- (BOOL)startBLEWithServiceUUID:(nullable NSString*)serviceUUID;
+- (BOOL)startBLEWithServiceUUID:(nullable NSString*)serviceUUID localName:(nullable NSString*)localName;
 - (BOOL)stopBLE;
 
 @end

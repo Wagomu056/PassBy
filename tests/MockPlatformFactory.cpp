@@ -4,7 +4,7 @@ namespace PassBy {
 
 class MockPlatform : public PlatformInterface {
 public:
-    bool startBLE(const std::string& serviceUUID = "") override {
+    bool startBLE(const std::string& serviceUUID = "", const std::string& localName = "") override {
         return true;
     }
     

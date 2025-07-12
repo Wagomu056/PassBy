@@ -17,7 +17,7 @@ public:
     iOSPlatform();
     ~iOSPlatform() override;
     
-    bool startBLE(const std::string& serviceUUID = "") override;
+    bool startBLE(const std::string& serviceUUID = "", const std::string& localName = "") override;
     bool stopBLE() override;
     bool isBLEActive() const override;
 

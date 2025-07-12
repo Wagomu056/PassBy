@@ -34,7 +34,7 @@ PassByManager::~PassByManager() {
     }
 }
 
-bool PassByManager::startScanning(const std::string& serviceUUID) {
+bool PassByManager::startScanning(const std::string& serviceUUID, const std::string& localName) {
     if (m_isScanning) {
         return false;
     }
@@ -44,7 +44,7 @@ bool PassByManager::startScanning(const std::string& serviceUUID) {
     
     // Use platform interface if available
     if (m_platform) {
-        if (m_platform->startBLE(serviceUUID)) {
+        if (m_platform->startBLE(serviceUUID, localName)) {
             m_isScanning = true;
             return true;
         }
