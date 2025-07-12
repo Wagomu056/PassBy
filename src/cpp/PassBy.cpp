@@ -20,7 +20,7 @@ PassByManager& PassByManager::getInstance() {
 }
 
 
-PassByManager::PassByManager() : m_isScanning(false), m_deviceCallback(nullptr), m_currentServiceUUID("") {
+PassByManager::PassByManager() : m_isScanning(false), m_deviceCallback(nullptr), m_advertisingCallback(nullptr), m_currentServiceUUID("") {
     // Create platform using factory
     m_platform = PlatformFactory::createPlatform();
     
@@ -85,6 +85,10 @@ void PassByManager::setDeviceDiscoveredCallback(DeviceDiscoveredCallback callbac
     m_deviceCallback = callback;
 }
 
+void PassByManager::setAdvertisingStartedCallback(AdvertisingStartedCallback callback) {
+    m_advertisingCallback = callback;
+}
+
 std::vector<std::string> PassByManager::getDiscoveredDevices() const {
     return std::vector<std::string>(m_discoveredDevices.begin(), m_discoveredDevices.end());
 }
@@ -105,6 +109,14 @@ void PassByManager::onDeviceDiscovered(const std::string& uuid) {
     if (m_deviceCallback) {
         DeviceInfo device(uuid);
         m_deviceCallback(device);
+    }
+}
+
+void PassByManager::onAdvertisingStarted(const std::string& peripheralUUID, bool success, const std::string& errorMessage) {
+    // Call user callback if set
+    if (m_advertisingCallback) {
+        AdvertisingInfo info(peripheralUUID, success, errorMessage);
+        m_advertisingCallback(info);
     }
 }
 

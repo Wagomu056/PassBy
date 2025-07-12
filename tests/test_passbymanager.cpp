@@ -200,3 +200,54 @@ TEST_F(PassByManagerTest, ServiceUUIDChangeBetweenScans) {
     // Cleanup
     manager.stopScanning();
 }
+
+TEST_F(PassByManagerTest, AdvertisingStartedSuccess) {
+    auto& manager = PassBy::PassByManager::getInstance();
+    
+    PassBy::AdvertisingInfo receivedInfo("", false);
+    bool callbackCalled = false;
+    
+    manager.setAdvertisingStartedCallback([&](const PassBy::AdvertisingInfo& info) {
+        receivedInfo = info;
+        callbackCalled = true;
+    });
+    
+    manager.startScanning();
+    // 成功ケースをシミュレート
+    manager.onAdvertisingStarted("uuid-success-123", true);
+    
+    EXPECT_TRUE(callbackCalled);
+    EXPECT_TRUE(receivedInfo.success);
+    EXPECT_EQ(receivedInfo.peripheralUUID, "uuid-success-123");
+    EXPECT_TRUE(receivedInfo.errorMessage.empty());
+}
+
+TEST_F(PassByManagerTest, AdvertisingStartedFailure) {
+    auto& manager = PassBy::PassByManager::getInstance();
+    
+    PassBy::AdvertisingInfo receivedInfo("", true);
+    bool callbackCalled = false;
+    
+    manager.setAdvertisingStartedCallback([&](const PassBy::AdvertisingInfo& info) {
+        receivedInfo = info;
+        callbackCalled = true;
+    });
+    
+    manager.startScanning();
+    // 失敗ケースをシミュレート
+    manager.onAdvertisingStarted("", false, "Bluetooth not available");
+    
+    EXPECT_TRUE(callbackCalled);
+    EXPECT_FALSE(receivedInfo.success);
+    EXPECT_TRUE(receivedInfo.peripheralUUID.empty());
+    EXPECT_EQ(receivedInfo.errorMessage, "Bluetooth not available");
+}
+
+TEST_F(PassByManagerTest, AdvertisingStartedWithoutCallback) {
+    auto& manager = PassBy::PassByManager::getInstance();
+    
+    manager.startScanning();
+    // コールバック未設定でonAdvertisingStartedを呼んでもクラッシュしないことを確認
+    EXPECT_NO_THROW(manager.onAdvertisingStarted("uuid-test", true));
+    EXPECT_NO_THROW(manager.onAdvertisingStarted("", false, "Error"));
+}
