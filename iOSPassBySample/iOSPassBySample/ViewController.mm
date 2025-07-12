@@ -9,6 +9,8 @@
 #include <PassBy/PassBy.h>
 #include <PassBy/PassByTypes.h>
 #include <memory>
+#include <sys/utsname.h>
+#import <CommonCrypto/CommonDigest.h>
 
 @interface ViewController ()
 @property (nonatomic, strong) UILabel *statusLabel;
@@ -38,6 +40,42 @@
     [self setupNotificationObservers];
 }
 
+- (NSString*)generateDefaultLocalName {
+    // Get hardware identifier using uname
+    struct utsname systemInfo;
+    uname(&systemInfo);
+    NSString *hardwareID = [NSString stringWithCString:systemInfo.machine encoding:NSUTF8StringEncoding];
+    
+    // Extract model name (part before comma)
+    NSString *modelName = hardwareID;
+    NSRange commaRange = [hardwareID rangeOfString:@","];
+    if (commaRange.location != NSNotFound) {
+        modelName = [hardwareID substringToIndex:commaRange.location];
+    }
+    
+    // Generate 6-digit alphanumeric string from identifierForVendor
+    NSString *vendorID = [[[UIDevice currentDevice] identifierForVendor] UUIDString];
+    if (!vendorID) {
+        vendorID = @"DEFAULT-UUID-STRING"; // Fallback
+    }
+    
+    // Create hash from vendorID
+    const char *cStr = [vendorID UTF8String];
+    unsigned char digest[CC_MD5_DIGEST_LENGTH];
+    CC_MD5(cStr, (CC_LONG)strlen(cStr), digest);
+    
+    // Convert to 6-character alphanumeric string
+    NSMutableString *randomPart = [NSMutableString string];
+    const char alphanumeric[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    for (int i = 0; i < 6; i++) {
+        int index = digest[i] % (sizeof(alphanumeric) - 1);
+        [randomPart appendFormat:@"%c", alphanumeric[index]];
+    }
+    
+    // Combine model name and random part
+    return [NSString stringWithFormat:@"%@-%@", modelName, randomPart];
+}
+
 - (void)setupUI {
     self.view.backgroundColor = [UIColor systemBackgroundColor];
     
@@ -63,7 +101,7 @@
     // Local Name text field
     self.localNameTextField = [[UITextField alloc] init];
     self.localNameTextField.placeholder = @"Local Name (empty = default PassBy)";
-    self.localNameTextField.text = @"";
+    self.localNameTextField.text = [self generateDefaultLocalName];
     self.localNameTextField.borderStyle = UITextBorderStyleRoundedRect;
     self.localNameTextField.delegate = self;
     self.localNameTextField.returnKeyType = UIReturnKeyDone;
